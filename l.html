@@ -3,112 +3,83 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Farm AI Ultra</title>
+  <title>Smart Farm AI Bluetooth</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gradient-to-br from-green-300 via-blue-200 to-green-100 min-h-screen flex items-center justify-center p-4">
 
-<div class="bg-white/80 backdrop-blur-xl shadow-2xl rounded-3xl p-6 w-full max-w-3xl border border-white/40">
-  <h1 class="text-4xl font-extrabold text-center mb-6 text-green-700">🌱 Test</h1>
+<div class="bg-white/80 backdrop-blur-xl shadow-2xl rounded-3xl p-6 w-full max-w-3xl">
 
-  <button id="connect" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:scale-105 transition transform text-white px-4 py-3 rounded-xl w-full mb-6 shadow-lg">
-    🔌 เชื่อมต่อ micro:bit
+  <h1 class="text-3xl font-bold text-center mb-4 text-green-700">
+    🌱 Test (Bluetooth)
+  </h1>
+
+  <!-- 🔌 Status -->
+  <p id="status" class="text-center mb-4 text-red-500 font-bold">
+    ❌ ยังไม่เชื่อมต่อ
+  </p>
+
+  <!-- 🔘 Connect -->
+  <button id="connect"
+    class="bg-blue-500 hover:scale-105 transition text-white w-full py-3 rounded-xl mb-6">
+    🔌 เชื่อมต่อ Bluetooth
   </button>
 
-  <!-- Sensor Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-    <div class="bg-gradient-to-br from-red-100 to-white p-5 rounded-2xl shadow text-center">
-      <p class="text-gray-600">🌡 อุณหภูมิ</p>
-      <p id="temp" class="text-3xl font-bold text-red-500">-- °C</p>
+  <!-- Sensor -->
+  <div class="grid grid-cols-2 gap-4 mb-6">
+    <div class="bg-red-100 p-4 rounded-xl text-center">
+      🌡 <p id="temp" class="text-2xl font-bold">--</p>
     </div>
-
-    <div class="bg-gradient-to-br from-blue-100 to-white p-5 rounded-2xl shadow text-center">
-      <p class="text-gray-600">💧 ความชื้น</p>
-      <p id="hum" class="text-3xl font-bold text-blue-500">-- %</p>
+    <div class="bg-blue-100 p-4 rounded-xl text-center">
+      💧 <p id="hum" class="text-2xl font-bold">--</p>
     </div>
   </div>
 
-  <!-- Plant Select -->
-  <div class="mb-6">
-    <label class="block mb-2 font-semibold text-gray-700">🌱 เลือกพืช</label>
-    <select id="plant" class="w-full p-3 rounded-xl border focus:ring-2 focus:ring-green-400">
-      <option value="ข้าว">ข้าว</option>
-      <option value="ผัก">ผัก</option>
-      <option value="ไม้ผล">ไม้ผล</option>
-    </select>
-  </div>
-
-  <!-- AI Result -->
-  <div class="bg-gradient-to-br from-green-200 to-green-100 p-5 rounded-2xl shadow-lg border border-green-300">
-    <p class="font-bold text-lg mb-2">🤖 AI วิเคราะห์</p>
-    <pre id="ai" class="whitespace-pre-wrap text-sm text-gray-800">ยังไม่มีข้อมูล</pre>
+  <!-- AI -->
+  <div class="bg-green-100 p-4 rounded-xl mb-4">
+    <p class="font-bold">🤖 AI วิเคราะห์</p>
+    <pre id="ai">ยังไม่มีข้อมูล</pre>
   </div>
 
   <!-- Chart -->
-  <div class="mt-6 bg-white p-4 rounded-2xl shadow">
-    <canvas id="chart"></canvas>
-  </div>
+  <canvas id="chart"></canvas>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-let port, reader;
+// ================== GLOBAL ==================
+let device, server, service, characteristic;
 let chart;
-let historyLabels = [];
-let tempData = [];
-let humData = [];
+let labels = [], tempData = [], humData = [];
 
-async function connectSerial() {
-  port = await navigator.serial.requestPort();
-  await port.open({ baudRate: 115200 });
-
-  const decoder = new TextDecoderStream();
-  port.readable.pipeTo(decoder.writable);
-  reader = decoder.readable.getReader();
-
-  readLoop();
-}
-
+// ================== CHART ==================
 function initChart() {
-  const ctx = document.getElementById('chart').getContext('2d');
+  const ctx = document.getElementById("chart");
   chart = new Chart(ctx, {
-    type: 'line',
+    type: "line",
     data: {
-      labels: historyLabels,
+      labels,
       datasets: [
-        {
-          label: 'อุณหภูมิ',
-          data: tempData,
-          borderWidth: 3,
-          tension: 0.4
-        },
-        {
-          label: 'ความชื้น',
-          data: humData,
-          borderWidth: 3,
-          tension: 0.4
-        }
+        { label: "Temp", data: tempData, borderWidth: 2 },
+        { label: "Hum", data: humData, borderWidth: 2 }
       ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'top' }
-      }
     }
   });
 }
 
+// ================== UPDATE CHART ==================
 function updateChart(temp, hum) {
   const time = new Date().toLocaleTimeString();
 
-  historyLabels.push(time);
+  labels.push(time);
   tempData.push(temp);
   humData.push(hum);
 
-  if (historyLabels.length > 12) {
-    historyLabels.shift();
+  if (labels.length > 10) {
+    labels.shift();
     tempData.shift();
     humData.shift();
   }
@@ -116,57 +87,104 @@ function updateChart(temp, hum) {
   chart.update();
 }
 
-async function readLoop() {
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
+// ================== BLUETOOTH ==================
+async function connectBluetooth() {
+  try {
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ namePrefix: "BBC micro:bit" }],
+      optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
+    });
 
-    const parts = value.trim().split(",");
-    if (parts.length === 2) {
-      const temp = parseFloat(parts[0]);
-      const hum = parseFloat(parts[1]);
+    server = await device.gatt.connect();
 
-      document.getElementById("temp").innerText = temp + " °C";
-      document.getElementById("hum").innerText = hum + " %";
+    service = await server.getPrimaryService(
+      "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+    );
 
-      updateChart(temp, hum);
-      runAI(temp, hum);
-    }
+    characteristic = await service.getCharacteristic(
+      "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+    );
+
+    await characteristic.startNotifications();
+
+    characteristic.addEventListener(
+      "characteristicvaluechanged",
+      handleData
+    );
+
+    document.getElementById("status").innerText = "✅ เชื่อมต่อแล้ว";
+
+    // 🔄 auto reconnect
+    device.addEventListener("gattserverdisconnected", () => {
+      document.getElementById("status").innerText = "⚠️ หลุดการเชื่อมต่อ";
+      reconnect();
+    });
+
+  } catch (err) {
+    alert("❌ เชื่อมต่อไม่สำเร็จ");
   }
 }
 
-async function runAI(temp, hum) {
-  const plant = document.getElementById("plant").value;
+// ================== RECONNECT ==================
+async function reconnect() {
+  try {
+    server = await device.gatt.connect();
+    document.getElementById("status").innerText = "🔄 reconnect สำเร็จ";
+  } catch {
+    document.getElementById("status").innerText = "❌ reconnect ไม่ได้";
+  }
+}
 
-  document.getElementById("ai").innerText = "⏳ AI กำลังวิเคราะห์...";
+// ================== HANDLE DATA ==================
+function handleData(event) {
+  const value = new TextDecoder().decode(event.target.value);
+  const parts = value.trim().split(",");
+
+  if (parts.length === 2) {
+    const temp = parseFloat(parts[0]);
+    const hum = parseFloat(parts[1]);
+
+    document.getElementById("temp").innerText = temp + " °C";
+    document.getElementById("hum").innerText = hum + " %";
+
+    updateChart(temp, hum);
+    runAI(temp, hum);
+  }
+}
+
+// ================== AI ==================
+async function runAI(temp, hum) {
+  document.getElementById("ai").innerText = "⏳ AI กำลังคิด...";
 
   if (hum > 85) {
     document.getElementById("ai").innerText =
-      "💧 น้ำ: 0 ml\n🌿 ปุ๋ย: 0 g\n📊 เหตุผล: ดินชื้นมาก";
+      "💧 น้ำ: 0 ml\n🌿 ปุ๋ย: 0 g\n📊 ดินชื้น";
     return;
   }
 
   try {
-    const response = await fetch("http://localhost:3000/ai", {
+    const res = await fetch("https://your-backend.onrender.com/ai", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ temp, hum, plant })
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ temp, hum, plant: "ข้าว" })
     });
 
-    const data = await response.json();
+    const data = await res.json();
 
     document.getElementById("ai").innerText =
-      `💧 น้ำ: ${data.water} ml\n🌿 ปุ๋ย: ${data.fertilizer} g\n📊 เหตุผล: ${data.reason}`;
+      `💧 ${data.water} ml\n🌿 ${data.fertilizer} g\n📊 ${data.reason}`;
 
   } catch {
     document.getElementById("ai").innerText = "❌ AI error";
   }
 }
 
-document.getElementById("connect").addEventListener("click", connectSerial);
+// ================== INIT ==================
+document.getElementById("connect")
+  .addEventListener("click", connectBluetooth);
 
 initChart();
-</script>
 
+</script>
 </body>
 </html>
