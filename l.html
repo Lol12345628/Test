@@ -2,36 +2,36 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Farm AI Bluetooth</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gradient-to-br from-green-300 via-blue-200 to-green-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-gradient-to-br from-emerald-400 via-blue-300 to-indigo-200 min-h-screen flex items-center justify-center p-4">
 
-<div class="bg-white/80 backdrop-blur-xl shadow-2xl rounded-3xl p-6 w-full max-w-3xl">
+<div class="bg-white/30 backdrop-blur-2xl shadow-2xl rounded-3xl p-6 w-full max-w-3xl">
 
-  <h1 class="text-3xl font-bold text-center mb-4 text-green-700">
-    🌱 Test (Bluetooth)
+  <h1 class="text-3xl font-bold text-center mb-4 text-green-800">
+    🌱 Smart Farm AI
   </h1>
 
-  <!-- 🔌 Status -->
+  <!-- STATUS -->
   <p id="status" class="text-center mb-4 text-red-500 font-bold">
     ❌ ยังไม่เชื่อมต่อ
   </p>
 
-  <!-- 🔘 Connect -->
+  <!-- BUTTON -->
   <button id="connect"
     class="bg-blue-500 hover:scale-105 transition text-white w-full py-3 rounded-xl mb-6">
     🔌 เชื่อมต่อ Bluetooth
   </button>
 
-  <!-- Sensor -->
+  <!-- SENSOR -->
   <div class="grid grid-cols-2 gap-4 mb-6">
-    <div class="bg-red-100 p-4 rounded-xl text-center">
+    <div class="bg-white p-4 rounded-xl text-center shadow">
       🌡 <p id="temp" class="text-2xl font-bold">--</p>
     </div>
-    <div class="bg-blue-100 p-4 rounded-xl text-center">
+    <div class="bg-white p-4 rounded-xl text-center shadow">
       💧 <p id="hum" class="text-2xl font-bold">--</p>
     </div>
   </div>
@@ -42,7 +42,7 @@
     <pre id="ai">ยังไม่มีข้อมูล</pre>
   </div>
 
-  <!-- Chart -->
+  <!-- CHART -->
   <canvas id="chart"></canvas>
 
 </div>
@@ -50,12 +50,12 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-// ================== GLOBAL ==================
+// ================= GLOBAL =================
 let device, server, service, characteristic;
 let chart;
 let labels = [], tempData = [], humData = [];
 
-// ================== CHART ==================
+// ================= INIT CHART =================
 function initChart() {
   const ctx = document.getElementById("chart");
   chart = new Chart(ctx, {
@@ -70,7 +70,7 @@ function initChart() {
   });
 }
 
-// ================== UPDATE CHART ==================
+// ================= UPDATE CHART =================
 function updateChart(temp, hum) {
   const time = new Date().toLocaleTimeString();
 
@@ -87,8 +87,21 @@ function updateChart(temp, hum) {
   chart.update();
 }
 
-// ================== BLUETOOTH ==================
+// ================= STATUS =================
+function setStatus(text, color) {
+  const el = document.getElementById("status");
+  el.innerText = text;
+  el.className = "text-center mb-4 font-bold " + color;
+}
+
+// ================= BLUETOOTH =================
 async function connectBluetooth() {
+
+  if (!navigator.bluetooth) {
+    alert("❌ มือถือไม่รองรับ Bluetooth");
+    return;
+  }
+
   try {
     device = await navigator.bluetooth.requestDevice({
       filters: [{ namePrefix: "BBC micro:bit" }],
@@ -112,11 +125,10 @@ async function connectBluetooth() {
       handleData
     );
 
-    document.getElementById("status").innerText = "✅ เชื่อมต่อแล้ว";
+    setStatus("✅ เชื่อมต่อแล้ว", "text-green-600");
 
-    // 🔄 auto reconnect
     device.addEventListener("gattserverdisconnected", () => {
-      document.getElementById("status").innerText = "⚠️ หลุดการเชื่อมต่อ";
+      setStatus("⚠️ หลุดการเชื่อมต่อ", "text-yellow-500");
       reconnect();
     });
 
@@ -125,24 +137,28 @@ async function connectBluetooth() {
   }
 }
 
-// ================== RECONNECT ==================
+// ================= RECONNECT =================
 async function reconnect() {
   try {
     server = await device.gatt.connect();
-    document.getElementById("status").innerText = "🔄 reconnect สำเร็จ";
+    setStatus("🔄 reconnect สำเร็จ", "text-green-600");
   } catch {
-    document.getElementById("status").innerText = "❌ reconnect ไม่ได้";
+    setStatus("❌ reconnect ไม่ได้", "text-red-500");
   }
 }
 
-// ================== HANDLE DATA ==================
+// ================= HANDLE DATA =================
 function handleData(event) {
   const value = new TextDecoder().decode(event.target.value);
+  console.log("DATA:", value);
+
   const parts = value.trim().split(",");
 
   if (parts.length === 2) {
     const temp = parseFloat(parts[0]);
     const hum = parseFloat(parts[1]);
+
+    if (isNaN(temp) || isNaN(hum)) return;
 
     document.getElementById("temp").innerText = temp + " °C";
     document.getElementById("hum").innerText = hum + " %";
@@ -152,34 +168,43 @@ function handleData(event) {
   }
 }
 
-// ================== AI ==================
+// ================= AI =================
 async function runAI(temp, hum) {
   document.getElementById("ai").innerText = "⏳ AI กำลังคิด...";
 
   if (hum > 85) {
     document.getElementById("ai").innerText =
-      "💧 น้ำ: 0 ml\n🌿 ปุ๋ย: 0 g\n📊 ดินชื้น";
+      "💧 น้ำ: 0 ml\n🌿 ปุ๋ย: 0 g\n📊 ดินชื้นมาก";
     return;
   }
 
   try {
-    const res = await fetch("https://your-backend.onrender.com/ai", {
+    const res = await fetch("https://YOUR-URL.onrender.com/ai", {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ temp, hum, plant: "ข้าว" })
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        temp: Number(temp),
+        hum: Number(hum),
+        plant: "ข้าว"
+      })
     });
+
+    if (!res.ok) throw new Error();
 
     const data = await res.json();
 
     document.getElementById("ai").innerText =
-      `💧 ${data.water} ml\n🌿 ${data.fertilizer} g\n📊 ${data.reason}`;
+      `💧 น้ำ: ${data.water} ml\n🌿 ปุ๋ย: ${data.fertilizer} g\n📊 ${data.reason}`;
 
   } catch {
-    document.getElementById("ai").innerText = "❌ AI error";
+    document.getElementById("ai").innerText =
+      "❌ AI error (เช็ค backend)";
   }
 }
 
-// ================== INIT ==================
+// ================= INIT =================
 document.getElementById("connect")
   .addEventListener("click", connectBluetooth);
 
