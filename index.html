@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Farm AI Bluetooth</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/brain.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body class="bg-gradient-to-br from-emerald-400 via-blue-300 to-indigo-200 min-h-screen flex items-center justify-center p-4">
@@ -15,18 +18,15 @@
     🌱 Smart Farm AI
   </h1>
 
-  <!-- STATUS -->
   <p id="status" class="text-center mb-4 text-red-500 font-bold">
     ❌ ยังไม่เชื่อมต่อ
   </p>
 
-  <!-- BUTTON -->
   <button id="connect"
     class="bg-blue-500 hover:scale-105 transition text-white w-full py-3 rounded-xl mb-6">
     🔌 เชื่อมต่อ Bluetooth
   </button>
 
-  <!-- SENSOR -->
   <div class="grid grid-cols-2 gap-4 mb-6">
     <div class="bg-white p-4 rounded-xl text-center shadow">
       🌡 <p id="temp" class="text-2xl font-bold">--</p>
@@ -36,41 +36,36 @@
     </div>
   </div>
 
-  <!-- AI -->
   <div class="bg-green-100 p-4 rounded-xl mb-4">
     <p class="font-bold">🤖 AI วิเคราะห์</p>
     <pre id="ai">ยังไม่มีข้อมูล</pre>
   </div>
 
-  <!-- CHART -->
   <canvas id="chart"></canvas>
 
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 // ================= GLOBAL =================
 let device, server, service, characteristic;
 let chart;
 let labels = [], tempData = [], humData = [];
+let net;
 
-// ================= INIT CHART =================
+// ================= CHART =================
 function initChart() {
-  const ctx = document.getElementById("chart");
-  chart = new Chart(ctx, {
+  chart = new Chart(document.getElementById("chart"), {
     type: "line",
     data: {
       labels,
       datasets: [
-        { label: "Temp", data: tempData, borderWidth: 2 },
-        { label: "Hum", data: humData, borderWidth: 2 }
+        { label: "Temp", data: tempData },
+        { label: "Hum", data: humData }
       ]
     }
   });
 }
 
-// ================= UPDATE CHART =================
 function updateChart(temp, hum) {
   const time = new Date().toLocaleTimeString();
 
@@ -78,7 +73,7 @@ function updateChart(temp, hum) {
   tempData.push(temp);
   humData.push(hum);
 
-  if (labels.length > 10) {
+  if (labels.length > 12) {
     labels.shift();
     tempData.shift();
     humData.shift();
@@ -94,122 +89,80 @@ function setStatus(text, color) {
   el.className = "text-center mb-4 font-bold " + color;
 }
 
-// ================= BLUETOOTH =================
-async function connectBluetooth() {
-
-  if (!navigator.bluetooth) {
-    alert("❌ มือถือไม่รองรับ Bluetooth");
-    return;
-  }
-
-  try {
-    device = await navigator.bluetooth.requestDevice({
-      filters: [{ namePrefix: "BBC micro:bit" }],
-      optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
-    });
-
-    server = await device.gatt.connect();
-
-    service = await server.getPrimaryService(
-      "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
-    );
-
-    characteristic = await service.getCharacteristic(
-      "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
-    );
-
-    await characteristic.startNotifications();
-
-    characteristic.addEventListener(
-      "characteristicvaluechanged",
-      handleData
-    );
-
-    setStatus("✅ เชื่อมต่อแล้ว", "text-green-600");
-
-    device.addEventListener("gattserverdisconnected", () => {
-      setStatus("⚠️ หลุดการเชื่อมต่อ", "text-yellow-500");
-      reconnect();
-    });
-
-  } catch (err) {
-    alert("❌ เชื่อมต่อไม่สำเร็จ");
-  }
-}
-
-// ================= RECONNECT =================
-async function reconnect() {
-  try {
-    server = await device.gatt.connect();
-    setStatus("🔄 reconnect สำเร็จ", "text-green-600");
-  } catch {
-    setStatus("❌ reconnect ไม่ได้", "text-red-500");
-  }
-}
-
-// ================= HANDLE DATA =================
-function handleData(event) {
-  const value = new TextDecoder().decode(event.target.value);
-  console.log("DATA:", value);
-
-  const parts = value.trim().split(",");
-
-  if (parts.length === 2) {
-    const temp = parseFloat(parts[0]);
-    const hum = parseFloat(parts[1]);
-
-    if (isNaN(temp) || isNaN(hum)) return;
-
-    document.getElementById("temp").innerText = temp + " °C";
-    document.getElementById("hum").innerText = hum + " %";
-
-    updateChart(temp, hum);
-    runAI(temp, hum);
-  }
-}
-
 // ================= AI =================
-async function runAI(temp, hum) {
-  document.getElementById("ai").innerText = "⏳ AI กำลังคิด...";
+function trainAI() {
+  net = new brain.NeuralNetwork({ hiddenLayers: [6,6] });
+
+  net.train([
+    { input: { temp: 0.5, hum: 0.8 }, output: { water: 0.1, fert: 0.1 } },
+    { input: { temp: 0.7, hum: 0.4 }, output: { water: 0.9, fert: 0.7 } },
+    { input: { temp: 0.6, hum: 0.6 }, output: { water: 0.4, fert: 0.3 } },
+    { input: { temp: 0.4, hum: 0.9 }, output: { water: 0.0, fert: 0.0 } }
+  ], { iterations: 2000 });
+}
+
+function runAI(temp, hum) {
+  const output = net.run({
+    temp: temp/50,
+    hum: hum/100
+  });
+
+  let water = Math.round(output.water * 1000);
+  let fert = Math.round(output.fert * 50);
 
   if (hum > 85) {
-    document.getElementById("ai").innerText =
-      "💧 น้ำ: 0 ml\n🌿 ปุ๋ย: 0 g\n📊 ดินชื้นมาก";
+    water = 0;
+    fert = 0;
+  }
+
+  document.getElementById("ai").innerText =
+    `💧 ${water} ml\n🌿 ${fert} g`;
+}
+
+// ================= BLUETOOTH =================
+async function connectBluetooth() {
+  if (!navigator.bluetooth) {
+    alert("❌ ใช้ Chrome Android");
     return;
   }
 
-  try {
-    const res = await fetch("https://YOUR-URL.onrender.com/ai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        temp: Number(temp),
-        hum: Number(hum),
-        plant: "ข้าว"
-      })
-    });
+  device = await navigator.bluetooth.requestDevice({
+    filters: [{ namePrefix: "BBC micro:bit" }],
+    optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
+  });
 
-    if (!res.ok) throw new Error();
+  server = await device.gatt.connect();
+  service = await server.getPrimaryService("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
+  characteristic = await service.getCharacteristic("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
 
-    const data = await res.json();
+  await characteristic.startNotifications();
+  characteristic.addEventListener("characteristicvaluechanged", handleData);
 
-    document.getElementById("ai").innerText =
-      `💧 น้ำ: ${data.water} ml\n🌿 ปุ๋ย: ${data.fertilizer} g\n📊 ${data.reason}`;
+  setStatus("✅ เชื่อมต่อแล้ว", "text-green-600");
+}
 
-  } catch {
-    document.getElementById("ai").innerText =
-      "❌ AI error (เช็ค backend)";
-  }
+// ================= DATA =================
+function handleData(event) {
+  const value = new TextDecoder().decode(event.target.value);
+  const [temp, hum] = value.trim().split(",").map(Number);
+
+  if (!temp || !hum) return;
+
+  document.getElementById("temp").innerText = temp + " °C";
+  document.getElementById("hum").innerText = hum + " %";
+
+  updateChart(temp, hum);
+  runAI(temp, hum);
 }
 
 // ================= INIT =================
-document.getElementById("connect")
-  .addEventListener("click", connectBluetooth);
-
-initChart();
-
+window.onload = () => {
+  initChart();
+  trainAI();
+  document.getElementById("connect")
+    .addEventListener("click", connectBluetooth);
+};
 </script>
+
 </body>
 </html>
