@@ -1,77 +1,85 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Smart Farm AI</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Farm AI Ultra</title>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/brain.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/brain.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body class="bg-gradient-to-br from-emerald-500 via-teal-400 to-blue-400 min-h-screen flex items-center justify-center p-4">
+<body class="bg-black min-h-screen flex items-center justify-center p-4 text-white">
 
-<div class="w-full max-w-4xl">
+<!-- BACKGROUND GLOW -->
+<div class="fixed inset-0 -z-10">
+  <div class="absolute w-[500px] h-[500px] bg-green-500 blur-[150px] opacity-30 top-[-100px] left-[-100px]"></div>
+  <div class="absolute w-[500px] h-[500px] bg-blue-500 blur-[150px] opacity-30 bottom-[-100px] right-[-100px]"></div>
+</div>
 
-  <!-- HEADER -->
-  <div class="text-center mb-6 text-white">
-    <h1 class="text-4xl font-extrabold">🌱 Smart Farm AI</h1>
-    <p class="opacity-80">AI + Bluetooth IoT</p>
+<div class="w-full max-w-5xl">
+
+<!-- HEADER -->
+<div class="text-center mb-8">
+  <h1 class="text-5xl font-extrabold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+    🌱 Smart Farm AI
+  </h1>
+  <p class="text-gray-400">AI + Bluetooth + IoT</p>
+</div>
+
+<!-- MAIN CARD -->
+<div class="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 shadow-2xl">
+
+<!-- STATUS -->
+<div class="flex justify-between items-center mb-6">
+  <div id="status" class="px-4 py-2 rounded-full bg-red-500 animate-pulse font-bold">
+    ❌ ยังไม่เชื่อมต่อ
   </div>
 
-  <!-- MAIN CARD -->
-  <div class="bg-white/20 backdrop-blur-xl rounded-3xl shadow-2xl p-6">
+  <button id="connect"
+    class="bg-gradient-to-r from-green-400 to-blue-500 px-6 py-3 rounded-full font-bold hover:scale-110 transition">
+    🚀 Connect
+  </button>
+</div>
 
-    <!-- STATUS -->
-    <div class="flex justify-between items-center mb-6">
-      <div id="status" class="bg-red-500 text-white px-4 py-2 rounded-xl font-bold">
-        ❌ ยังไม่เชื่อมต่อ
-      </div>
+<!-- SENSOR -->
+<div class="grid grid-cols-2 gap-6 mb-6">
 
-      <button id="connect"
-        class="bg-blue-600 hover:scale-105 transition text-white px-6 py-3 rounded-xl">
-        🔌 Connect
-      </button>
-    </div>
-
-    <!-- SENSOR -->
-    <div class="grid grid-cols-2 gap-6 mb-6">
-
-      <div class="bg-white p-6 rounded-2xl text-center shadow">
-        <p>🌡 อุณหภูมิ</p>
-        <p id="temp" class="text-4xl font-bold text-red-500">--</p>
-      </div>
-
-      <div class="bg-white p-6 rounded-2xl text-center shadow">
-        <p>💧 ความชื้น</p>
-        <p id="hum" class="text-4xl font-bold text-blue-500">--</p>
-      </div>
-
-    </div>
-
-    <!-- AI -->
-    <div class="bg-green-200 p-5 rounded-2xl mb-6 shadow">
-      <p class="font-bold mb-2">🤖 AI วิเคราะห์</p>
-      <pre id="ai">ยังไม่มีข้อมูล</pre>
-    </div>
-
-    <!-- CHART -->
-    <div class="bg-white p-4 rounded-2xl shadow">
-      <canvas id="chart"></canvas>
-    </div>
-
+  <div class="bg-black/40 p-6 rounded-2xl text-center">
+    <p class="text-gray-400">🌡 Temperature</p>
+    <p id="temp" class="text-5xl text-red-400 font-bold">--</p>
   </div>
+
+  <div class="bg-black/40 p-6 rounded-2xl text-center">
+    <p class="text-gray-400">💧 Humidity</p>
+    <p id="hum" class="text-5xl text-blue-400 font-bold">--</p>
+  </div>
+
+</div>
+
+<!-- AI -->
+<div class="bg-gradient-to-br from-green-500/20 to-blue-500/20 p-6 rounded-2xl mb-6">
+  <p class="font-bold mb-2">🤖 AI วิเคราะห์</p>
+  <pre id="ai">ยังไม่มีข้อมูล</pre>
+</div>
+
+<!-- CHART -->
+<div class="bg-black/40 p-4 rounded-2xl">
+  <canvas id="chart"></canvas>
+</div>
+
+</div>
 </div>
 
 <script>
-// ================= GLOBAL =================
+// ===== GLOBAL =====
 let device, server, service, characteristic;
 let chart;
 let labels = [], tempData = [], humData = [];
 let net;
 
-// ================= CHART =================
+// ===== CHART =====
 function initChart() {
   chart = new Chart(document.getElementById("chart"), {
     type: "line",
@@ -86,9 +94,9 @@ function initChart() {
 }
 
 function updateChart(temp, hum) {
-  const time = new Date().toLocaleTimeString();
+  const t = new Date().toLocaleTimeString();
 
-  labels.push(time);
+  labels.push(t);
   tempData.push(temp);
   humData.push(hum);
 
@@ -101,29 +109,29 @@ function updateChart(temp, hum) {
   chart.update();
 }
 
-// ================= STATUS =================
+// ===== STATUS =====
 function setStatus(text, color) {
   const el = document.getElementById("status");
   el.innerText = text;
-  el.className = "px-4 py-2 rounded-xl font-bold text-white " + color;
+  el.className = "px-4 py-2 rounded-full font-bold text-white " + color;
 }
 
-// ================= AI =================
+// ===== AI =====
 function trainAI() {
   net = new brain.NeuralNetwork({ hiddenLayers: [6,6] });
 
   net.train([
-    { input: { temp: 0.5, hum: 0.8 }, output: { water: 0.1, fert: 0.1 } },
-    { input: { temp: 0.7, hum: 0.4 }, output: { water: 0.9, fert: 0.7 } },
-    { input: { temp: 0.6, hum: 0.6 }, output: { water: 0.4, fert: 0.3 } },
-    { input: { temp: 0.4, hum: 0.9 }, output: { water: 0.0, fert: 0.0 } }
-  ], { iterations: 2000 });
+    { input: { temp:0.5, hum:0.8 }, output:{water:0.1,fert:0.1}},
+    { input: { temp:0.7, hum:0.4 }, output:{water:0.9,fert:0.7}},
+    { input: { temp:0.6, hum:0.6 }, output:{water:0.4,fert:0.3}},
+    { input: { temp:0.4, hum:0.9 }, output:{water:0.0,fert:0.0}}
+  ]);
 }
 
 function runAI(temp, hum) {
   const out = net.run({
-    temp: temp / 50,
-    hum: hum / 100
+    temp: temp/50,
+    hum: hum/100
   });
 
   let water = Math.round(out.water * 1000);
@@ -135,60 +143,50 @@ function runAI(temp, hum) {
   }
 
   document.getElementById("ai").innerText =
-    `💧 น้ำ: ${water} ml\n🌿 ปุ๋ย: ${fert} g`;
+    `💧 ${water} ml\n🌿 ${fert} g`;
 }
 
-// ================= BLUETOOTH =================
+// ===== BLUETOOTH =====
 async function connectBluetooth() {
   if (!navigator.bluetooth) {
-    alert("❌ ใช้ Chrome Android เท่านั้น");
+    alert("ใช้ Chrome Android");
     return;
   }
 
-  try {
-    device = await navigator.bluetooth.requestDevice({
-      filters: [{ namePrefix: "BBC micro:bit" }],
-      optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
-    });
+  device = await navigator.bluetooth.requestDevice({
+    filters: [{ namePrefix: "BBC micro:bit" }],
+    optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
+  });
 
-    server = await device.gatt.connect();
+  server = await device.gatt.connect();
+  service = await server.getPrimaryService("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
+  characteristic = await service.getCharacteristic("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
 
-    service = await server.getPrimaryService("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
+  await characteristic.startNotifications();
+  characteristic.addEventListener("characteristicvaluechanged", handleData);
 
-    characteristic = await service.getCharacteristic("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
-
-    await characteristic.startNotifications();
-
-    characteristic.addEventListener("characteristicvaluechanged", handleData);
-
-    setStatus("✅ เชื่อมต่อแล้ว", "bg-green-500");
-
-  } catch {
-    alert("❌ เชื่อมต่อไม่สำเร็จ");
-  }
+  setStatus("✅ เชื่อมต่อแล้ว", "bg-green-500");
 }
 
-// ================= DATA =================
+// ===== DATA =====
 function handleData(event) {
-  const value = new TextDecoder().decode(event.target.value);
-  const [temp, hum] = value.trim().split(",").map(Number);
+  const val = new TextDecoder().decode(event.target.value);
+  const [temp, hum] = val.trim().split(",").map(Number);
 
   if (!temp || !hum) return;
 
-  document.getElementById("temp").innerText = temp + " °C";
-  document.getElementById("hum").innerText = hum + " %";
+  document.getElementById("temp").innerText = temp + "°C";
+  document.getElementById("hum").innerText = hum + "%";
 
   updateChart(temp, hum);
   runAI(temp, hum);
 }
 
-// ================= INIT =================
+// ===== INIT =====
 window.onload = () => {
   initChart();
   trainAI();
-
-  document.getElementById("connect")
-    .addEventListener("click", connectBluetooth);
+  document.getElementById("connect").onclick = connectBluetooth;
 };
 </script>
 
