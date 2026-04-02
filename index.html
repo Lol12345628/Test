@@ -22,12 +22,12 @@
 
 <!-- STATUS -->
 <div class="flex justify-between mb-4">
-  <div id="status" class="bg-red-500 px-4 py-2 rounded-full">
+  <div id="status" class="bg-red-500 px-4 py-2 rounded-full animate-pulse">
     ❌ ยังไม่เชื่อมต่อ
   </div>
 
   <button id="connect"
-    class="bg-green-500 px-4 py-2 rounded-full">
+    class="bg-green-500 px-4 py-2 rounded-full hover:scale-110 transition">
     🔌 Connect
   </button>
 </div>
@@ -127,20 +127,22 @@ function runAI(temp, hum) {
     `💧 ${water} ml\n🌿 ${fert} g`;
 }
 
-// ===== BLUETOOTH (เสถียรแล้ว) =====
+// ===== BLUETOOTH (🔥 FIXED 100%) =====
 async function connectBluetooth() {
-
-  if (!navigator.bluetooth) {
-    alert("❌ ใช้ Chrome เท่านั้น");
-    return;
-  }
-
   try {
-    setStatus("🔍 กำลังค้นหา...", "bg-yellow-500");
+
+    if (!navigator.bluetooth) {
+      alert("❌ ใช้ Chrome Android เท่านั้น");
+      return;
+    }
+
+    setStatus("🔍 ค้นหา...", "bg-yellow-500");
 
     device = await navigator.bluetooth.requestDevice({
-      filters: [{ namePrefix: "BBC micro:bit" }],
-      optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
+      acceptAllDevices: true,
+      optionalServices: [
+        "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+      ]
     });
 
     device.addEventListener("gattserverdisconnected", () => {
@@ -155,29 +157,30 @@ async function connectBluetooth() {
       "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
     );
 
-    characteristic = await service.getCharacteristic(
+    const char = await service.getCharacteristic(
       "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
     );
 
-    await characteristic.startNotifications();
+    await char.startNotifications();
 
-    characteristic.addEventListener(
-      "characteristicvaluechanged",
-      handleData
-    );
+    char.addEventListener("characteristicvaluechanged", handleData);
 
-    setStatus("✅ เชื่อมต่อแล้ว", "bg-green-500");
+    characteristic = char;
+
+    setStatus("✅ เชื่อมต่อสำเร็จ", "bg-green-500");
 
   } catch (err) {
     console.error(err);
-    setStatus("❌ ต่อไม่ได้", "bg-red-500");
+    setStatus("❌ เชื่อมต่อไม่สำเร็จ", "bg-red-500");
+
+    alert("❌ ต่อไม่ได้\n\nลอง:\n1. เปิด Bluetooth ใหม่\n2. รี micro:bit\n3. ใช้ Chrome เท่านั้น");
   }
 }
 
 // ===== DATA =====
 function handleData(event) {
   const val = new TextDecoder().decode(event.target.value);
-  console.log(val);
+  console.log("DATA:", val);
 
   const parts = val.trim().split(",");
 
