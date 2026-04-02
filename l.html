@@ -8,26 +8,27 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/brain.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 
-<body class="bg-black min-h-screen flex items-center justify-center p-4 text-white">
+<body class="bg-black text-white min-h-screen flex items-center justify-center p-4">
 
 <div class="w-full max-w-4xl">
 
-<h1 class="text-4xl text-center mb-6 text-green-400 font-bold">
+<h1 class="text-4xl text-center text-green-400 font-bold mb-6">
 🌱 Smart Farm AI
 </h1>
 
-<div class="bg-white/10 p-6 rounded-2xl">
+<div class="bg-white/10 backdrop-blur-xl p-6 rounded-3xl">
 
 <!-- STATUS -->
 <div class="flex justify-between mb-4">
-  <div id="status" class="bg-red-500 px-4 py-2 rounded-full">
+  <div id="status" class="bg-red-500 px-4 py-2 rounded-full font-bold">
     ❌ ยังไม่เชื่อมต่อ
   </div>
 
   <button id="connect"
-    class="bg-green-500 px-4 py-2 rounded-xl">
+    class="bg-gradient-to-r from-green-400 to-blue-500 px-5 py-2 rounded-xl font-bold">
     🔌 Connect
   </button>
 </div>
@@ -35,16 +36,16 @@
 <!-- SENSOR -->
 <div class="grid grid-cols-2 gap-4 mb-4">
   <div class="bg-black/40 p-4 rounded-xl text-center">
-    🌡 <p id="temp" class="text-2xl">--</p>
+    🌡 <p id="temp" class="text-3xl">--</p>
   </div>
   <div class="bg-black/40 p-4 rounded-xl text-center">
-    💧 <p id="hum" class="text-2xl">--</p>
+    💧 <p id="hum" class="text-3xl">--</p>
   </div>
 </div>
 
 <!-- AI -->
-<div class="bg-green-900/30 p-4 rounded-xl mb-4">
-  <pre id="ai">ยังไม่มีข้อมูล</pre>
+<div class="bg-green-900/40 p-4 rounded-xl mb-4">
+  <pre id="ai">🤖 รอข้อมูล...</pre>
 </div>
 
 <canvas id="chart"></canvas>
@@ -78,10 +79,10 @@ function trainAI() {
   net = new brain.NeuralNetwork({ hiddenLayers: [6,6] });
 
   net.train([
-    { input: { temp:0.5, hum:0.8 }, output:{water:0.1,fert:0.1}},
-    { input: { temp:0.7, hum:0.4 }, output:{water:0.9,fert:0.7}},
-    { input: { temp:0.6, hum:0.6 }, output:{water:0.4,fert:0.3}},
-    { input: { temp:0.4, hum:0.9 }, output:{water:0.0,fert:0.0}}
+    { input:{temp:0.5,hum:0.8}, output:{water:0.1,fert:0.1}},
+    { input:{temp:0.7,hum:0.4}, output:{water:0.9,fert:0.7}},
+    { input:{temp:0.6,hum:0.6}, output:{water:0.4,fert:0.3}},
+    { input:{temp:0.4,hum:0.9}, output:{water:0.0,fert:0.0}}
   ]);
 }
 
@@ -107,8 +108,8 @@ function update(temp, hum) {
 // ===== AI RUN =====
 function runAI(temp, hum) {
   const out = net.run({
-    temp: temp/50,
-    hum: hum/100
+    temp: temp / 50,
+    hum: hum / 100
   });
 
   let water = Math.round(out.water * 1000);
@@ -120,32 +121,31 @@ function runAI(temp, hum) {
   }
 
   document.getElementById("ai").innerText =
-    `💧 ${water} ml\n🌿 ${fert} g`;
+    `💧 น้ำ: ${water} ml\n🌿 ปุ๋ย: ${fert} g`;
 }
 
 // ===== STATUS =====
 function setStatus(text, color) {
   const el = document.getElementById("status");
   el.innerText = text;
-  el.className = "px-4 py-2 rounded-full " + color;
+  el.className = "px-4 py-2 rounded-full font-bold " + color;
 }
 
-// ===== BLUETOOTH (แก้ NotFoundError แล้ว) =====
+// ===== BLUETOOTH =====
 async function connectBluetooth() {
 
   if (!navigator.bluetooth) {
-    alert("❌ มือถือไม่รองรับ\nใช้ Chrome Android เท่านั้น");
+    alert("❌ ใช้ Chrome Android เท่านั้น");
     return;
   }
 
   try {
+
     setStatus("🔍 กำลังค้นหา...", "bg-yellow-500");
 
     device = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
-      optionalServices: [
-        "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
-      ]
+      optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
     });
 
     device.addEventListener("gattserverdisconnected", () => {
@@ -169,6 +169,7 @@ async function connectBluetooth() {
     characteristic.addEventListener(
       "characteristicvaluechanged",
       (event) => {
+
         const val = new TextDecoder().decode(event.target.value);
         console.log("DATA:", val);
 
@@ -192,6 +193,7 @@ async function connectBluetooth() {
 
     if (err.name === "NotFoundError") {
       setStatus("❌ ไม่พบ micro:bit", "bg-red-500");
+      alert("❌ ไม่พบ micro:bit\n👉 เปิด Bluetooth + ใส่โค้ดให้ถูก");
     } else {
       setStatus("❌ เชื่อมต่อไม่ได้", "bg-red-500");
     }
