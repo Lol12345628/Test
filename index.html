@@ -87,6 +87,9 @@ function initChart() {
         { label: "Temp", data: tempData, borderWidth: 2 },
         { label: "Hum", data: humData, borderWidth: 2 }
       ]
+    },
+    options: {
+      responsive: true
     }
   });
 }
@@ -144,11 +147,11 @@ function runAI(temp, hum) {
     `💧 ${water} ml\n🌿 ${fert} g`;
 }
 
-// ===== BLUETOOTH (FIXED) =====
+// ===== BLUETOOTH (FINAL FIX) =====
 async function connectBluetooth() {
 
   if (!navigator.bluetooth) {
-    alert("❌ ใช้ Chrome Android เท่านั้น");
+    alert("❌ ใช้ Chrome Android หรือ PC Chrome เท่านั้น");
     return;
   }
 
@@ -191,10 +194,10 @@ async function connectBluetooth() {
   }
 }
 
-// ===== DATA =====
+// ===== DATA (FIX สำคัญ) =====
 function handleData(event) {
   const val = new TextDecoder().decode(event.target.value);
-  console.log(val);
+  console.log("DATA:", val);
 
   const parts = val.trim().split(",");
 
@@ -203,6 +206,7 @@ function handleData(event) {
   const temp = parseFloat(parts[0]);
   const hum = parseFloat(parts[1]);
 
+  // 🔥 FIX สำคัญ (0 ต้องผ่านได้)
   if (isNaN(temp) || isNaN(hum)) return;
 
   document.getElementById("temp").innerText = temp + "°C";
