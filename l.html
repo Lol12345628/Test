@@ -12,7 +12,6 @@
 
 <body class="bg-black min-h-screen flex items-center justify-center p-4 text-white">
 
-<!-- BG -->
 <div class="fixed inset-0 -z-10">
   <div class="absolute w-[500px] h-[500px] bg-green-500 blur-[150px] opacity-30 top-[-100px] left-[-100px]"></div>
   <div class="absolute w-[500px] h-[500px] bg-blue-500 blur-[150px] opacity-30 bottom-[-100px] right-[-100px]"></div>
@@ -20,7 +19,6 @@
 
 <div class="w-full max-w-5xl">
 
-<!-- HEADER -->
 <div class="text-center mb-8">
   <h1 class="text-5xl font-extrabold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
     🌱 Smart Farm AI
@@ -28,10 +26,8 @@
   <p class="text-gray-400">Bluetooth + AI + IoT</p>
 </div>
 
-<!-- CARD -->
 <div class="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 shadow-2xl">
 
-<!-- STATUS -->
 <div class="flex justify-between items-center mb-6">
   <div id="status" class="px-4 py-2 rounded-full bg-red-500 animate-pulse font-bold">
     ❌ ยังไม่เชื่อมต่อ
@@ -43,7 +39,6 @@
   </button>
 </div>
 
-<!-- SENSOR -->
 <div class="grid grid-cols-2 gap-6 mb-6">
   <div class="bg-black/40 p-6 rounded-2xl text-center">
     <p class="text-gray-400">🌡 Temperature</p>
@@ -56,13 +51,11 @@
   </div>
 </div>
 
-<!-- AI -->
 <div class="bg-gradient-to-br from-green-500/20 to-blue-500/20 p-6 rounded-2xl mb-6">
   <p class="font-bold mb-2">🤖 AI วิเคราะห์</p>
   <pre id="ai">ยังไม่มีข้อมูล</pre>
 </div>
 
-<!-- CHART -->
 <div class="bg-black/40 p-4 rounded-2xl">
   <canvas id="chart"></canvas>
 </div>
@@ -72,7 +65,6 @@
 
 <script>
 // ===== GLOBAL =====
-let device, characteristic;
 let chart;
 let labels = [], tempData = [], humData = [];
 let net;
@@ -144,35 +136,44 @@ function runAI(temp, hum) {
     `💧 ${water} ml\n🌿 ${fert} g`;
 }
 
-// ===== BLUETOOTH (FIXED 100%) =====
+// ===== BLUETOOTH DEBUG FIX =====
 async function connectBluetooth() {
 
-  if (!navigator.bluetooth) {
-    alert("❌ ใช้ Chrome Android เท่านั้น");
-    return;
-  }
-
   try {
-    setStatus("🔍 ค้นหาอุปกรณ์...", "bg-yellow-500");
 
-    device = await navigator.bluetooth.requestDevice({
+    if (!navigator.bluetooth) {
+      alert("❌ ใช้ Chrome Android เท่านั้น");
+      return;
+    }
+
+    setStatus("🔍 ค้นหา...", "bg-yellow-500");
+
+    const device = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
       optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
     });
 
-    setStatus("🔗 กำลังเชื่อมต่อ...", "bg-yellow-500");
+    console.log("DEVICE:", device.name);
+
+    setStatus("🔗 เชื่อมต่อ...", "bg-yellow-500");
 
     const server = await device.gatt.connect();
+    console.log("GATT OK");
 
     const service = await server.getPrimaryService(
       "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
     );
 
-    characteristic = await service.getCharacteristic(
+    console.log("SERVICE OK");
+
+    const characteristic = await service.getCharacteristic(
       "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
     );
 
+    console.log("CHAR OK");
+
     await characteristic.startNotifications();
+    console.log("NOTIFY OK");
 
     characteristic.addEventListener("characteristicvaluechanged", (event) => {
 
@@ -195,12 +196,12 @@ async function connectBluetooth() {
       runAI(temp, hum);
     });
 
-    setStatus("✅ เชื่อมต่อสำเร็จ", "bg-green-500");
+    setStatus("✅ สำเร็จ", "bg-green-500");
 
   } catch (err) {
     console.error(err);
-    setStatus("❌ เชื่อมต่อไม่สำเร็จ", "bg-red-500");
-    alert("ERROR: " + err);
+    alert("❌ ERROR: " + err);
+    setStatus("❌ ล้มเหลว", "bg-red-500");
   }
 }
 
