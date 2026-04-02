@@ -12,50 +12,67 @@
 
 <body class="bg-black min-h-screen flex items-center justify-center p-4 text-white">
 
+<!-- BG -->
+<div class="fixed inset-0 -z-10">
+  <div class="absolute w-[500px] h-[500px] bg-green-500 blur-[150px] opacity-30 top-[-100px] left-[-100px]"></div>
+  <div class="absolute w-[500px] h-[500px] bg-blue-500 blur-[150px] opacity-30 bottom-[-100px] right-[-100px]"></div>
+</div>
+
 <div class="w-full max-w-5xl">
 
-<h1 class="text-4xl text-center mb-6 font-bold text-green-400">
-🌱 Smart Farm AI
-</h1>
+<!-- HEADER -->
+<div class="text-center mb-8">
+  <h1 class="text-5xl font-extrabold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+    🌱 Smart Farm AI
+  </h1>
+  <p class="text-gray-400">Bluetooth + AI + IoT</p>
+</div>
 
-<div class="bg-white/10 p-6 rounded-3xl">
+<!-- CARD -->
+<div class="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 shadow-2xl">
 
 <!-- STATUS -->
-<div class="flex justify-between mb-4">
-  <div id="status" class="bg-red-500 px-4 py-2 rounded-full animate-pulse">
+<div class="flex justify-between items-center mb-6">
+  <div id="status" class="px-4 py-2 rounded-full bg-red-500 animate-pulse font-bold">
     ❌ ยังไม่เชื่อมต่อ
   </div>
 
   <button id="connect"
-    class="bg-green-500 px-4 py-2 rounded-full hover:scale-110 transition">
-    🔌 Connect
+    class="bg-gradient-to-r from-green-400 to-blue-500 px-6 py-3 rounded-full font-bold hover:scale-110 transition">
+    🚀 Connect
   </button>
 </div>
 
 <!-- SENSOR -->
-<div class="grid grid-cols-2 gap-4 mb-4">
-  <div class="bg-black/50 p-4 rounded-xl text-center">
-    🌡 <p id="temp">--</p>
+<div class="grid grid-cols-2 gap-6 mb-6">
+  <div class="bg-black/40 p-6 rounded-2xl text-center">
+    <p class="text-gray-400">🌡 Temperature</p>
+    <p id="temp" class="text-5xl text-red-400 font-bold">--</p>
   </div>
-  <div class="bg-black/50 p-4 rounded-xl text-center">
-    💧 <p id="hum">--</p>
+
+  <div class="bg-black/40 p-6 rounded-2xl text-center">
+    <p class="text-gray-400">💧 Humidity</p>
+    <p id="hum" class="text-5xl text-blue-400 font-bold">--</p>
   </div>
 </div>
 
 <!-- AI -->
-<div class="bg-green-900 p-4 rounded-xl mb-4">
+<div class="bg-gradient-to-br from-green-500/20 to-blue-500/20 p-6 rounded-2xl mb-6">
+  <p class="font-bold mb-2">🤖 AI วิเคราะห์</p>
   <pre id="ai">ยังไม่มีข้อมูล</pre>
 </div>
 
 <!-- CHART -->
-<canvas id="chart"></canvas>
+<div class="bg-black/40 p-4 rounded-2xl">
+  <canvas id="chart"></canvas>
+</div>
 
 </div>
 </div>
 
 <script>
 // ===== GLOBAL =====
-let device, server, characteristic;
+let device, characteristic;
 let chart;
 let labels = [], tempData = [], humData = [];
 let net;
@@ -81,7 +98,7 @@ function updateChart(temp, hum) {
   tempData.push(temp);
   humData.push(hum);
 
-  if (labels.length > 10) {
+  if (labels.length > 12) {
     labels.shift();
     tempData.shift();
     humData.shift();
@@ -94,7 +111,7 @@ function updateChart(temp, hum) {
 function setStatus(text, color) {
   const el = document.getElementById("status");
   el.innerText = text;
-  el.className = color + " px-4 py-2 rounded-full";
+  el.className = "px-4 py-2 rounded-full font-bold text-white " + color;
 }
 
 // ===== AI =====
@@ -127,75 +144,64 @@ function runAI(temp, hum) {
     `💧 ${water} ml\n🌿 ${fert} g`;
 }
 
-// ===== BLUETOOTH (🔥 FIXED 100%) =====
+// ===== BLUETOOTH (FIXED 100%) =====
 async function connectBluetooth() {
+
+  if (!navigator.bluetooth) {
+    alert("❌ ใช้ Chrome Android เท่านั้น");
+    return;
+  }
+
   try {
-
-    if (!navigator.bluetooth) {
-      alert("❌ ใช้ Chrome Android เท่านั้น");
-      return;
-    }
-
-    setStatus("🔍 ค้นหา...", "bg-yellow-500");
+    setStatus("🔍 ค้นหาอุปกรณ์...", "bg-yellow-500");
 
     device = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
-      optionalServices: [
-        "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
-      ]
+      optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
     });
 
-    device.addEventListener("gattserverdisconnected", () => {
-      setStatus("⚠️ หลุดการเชื่อมต่อ", "bg-yellow-500");
-    });
+    setStatus("🔗 กำลังเชื่อมต่อ...", "bg-yellow-500");
 
-    setStatus("🔗 กำลังเชื่อม...", "bg-yellow-500");
-
-    server = await device.gatt.connect();
+    const server = await device.gatt.connect();
 
     const service = await server.getPrimaryService(
       "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
     );
 
-    const char = await service.getCharacteristic(
+    characteristic = await service.getCharacteristic(
       "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
     );
 
-    await char.startNotifications();
+    await characteristic.startNotifications();
 
-    char.addEventListener("characteristicvaluechanged", handleData);
+    characteristic.addEventListener("characteristicvaluechanged", (event) => {
 
-    characteristic = char;
+      const value = new TextDecoder().decode(event.target.value);
+      console.log("DATA:", value);
+
+      const parts = value.trim().split(",");
+
+      if (parts.length !== 2) return;
+
+      const temp = parseFloat(parts[0]);
+      const hum = parseFloat(parts[1]);
+
+      if (isNaN(temp) || isNaN(hum)) return;
+
+      document.getElementById("temp").innerText = temp + "°C";
+      document.getElementById("hum").innerText = hum + "%";
+
+      updateChart(temp, hum);
+      runAI(temp, hum);
+    });
 
     setStatus("✅ เชื่อมต่อสำเร็จ", "bg-green-500");
 
   } catch (err) {
     console.error(err);
     setStatus("❌ เชื่อมต่อไม่สำเร็จ", "bg-red-500");
-
-    alert("❌ ต่อไม่ได้\n\nลอง:\n1. เปิด Bluetooth ใหม่\n2. รี micro:bit\n3. ใช้ Chrome เท่านั้น");
+    alert("ERROR: " + err);
   }
-}
-
-// ===== DATA =====
-function handleData(event) {
-  const val = new TextDecoder().decode(event.target.value);
-  console.log("DATA:", val);
-
-  const parts = val.trim().split(",");
-
-  if (parts.length !== 2) return;
-
-  const temp = parseFloat(parts[0]);
-  const hum = parseFloat(parts[1]);
-
-  if (isNaN(temp) || isNaN(hum)) return;
-
-  document.getElementById("temp").innerText = temp + "°C";
-  document.getElementById("hum").innerText = hum + "%";
-
-  updateChart(temp, hum);
-  runAI(temp, hum);
 }
 
 // ===== INIT =====
