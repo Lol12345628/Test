@@ -2,68 +2,157 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>USB Fix</title>
+<title>Smart Farm AI Pro</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body class="bg-black text-white flex justify-center items-center min-h-screen">
+<body class="bg-black text-white flex justify-center items-center min-h-screen p-4">
 
-<div class="bg-white/10 p-6 rounded-2xl w-96">
+<div class="w-full max-w-4xl bg-white/10 p-6 rounded-3xl">
 
-<h1 class="text-xl text-green-400 mb-4 text-center">
-🔌 USB micro:bit
+<h1 class="text-3xl text-green-400 text-center mb-4">
+🌱 Smart Farm AI (Stable)
 </h1>
 
-<p id="status" class="mb-4 text-red-400">❌ ยังไม่เชื่อมต่อ</p>
-
 <button id="connect"
-class="bg-blue-500 w-full py-2 rounded-xl mb-4">
-Connect USB
+class="bg-blue-500 w-full py-3 rounded-xl mb-4 font-bold">
+🔌 Connect USB
 </button>
 
-<p>🌡 <span id="temp">--</span></p>
-<p>💧 <span id="hum">--</span></p>
+<div class="grid grid-cols-2 gap-4 mb-4">
+  <div class="bg-black/40 p-4 text-center rounded-xl">
+    🌡 <p id="temp" class="text-3xl">--</p>
+  </div>
+  <div class="bg-black/40 p-4 text-center rounded-xl">
+    💧 <p id="hum" class="text-3xl">--</p>
+  </div>
+</div>
+
+<div class="bg-green-900/40 p-4 rounded-xl mb-4">
+  <pre id="ai">🤖 รอข้อมูล...</pre>
+</div>
+
+<canvas id="chart"></canvas>
 
 </div>
 
 <script>
+// ===== GLOBAL =====
 let port, reader;
+let chart;
+let labels=[], tempData=[], humData=[];
 
-function setStatus(t,c){
-  const el = document.getElementById("status");
-  el.innerText = t;
-  el.className = c;
+// smoothing
+let lastTemp = null;
+let lastHum = null;
+
+// ===== CHART =====
+function initChart(){
+  chart = new Chart(document.getElementById("chart"),{
+    type:"line",
+    data:{
+      labels,
+      datasets:[
+        {label:"Temp",data:tempData},
+        {label:"Hum",data:humData}
+      ]
+    }
+  });
 }
 
-async function connectUSB(){
+// ===== FILTER =====
+function smooth(value,last){
+  if(last===null) return value;
+  return last*0.7 + value*0.3;
+}
 
-  if(!("serial" in navigator)){
-    alert("❌ Browser ไม่รองรับ (ใช้ Chrome)");
-    return;
+// ===== AI LOGIC =====
+function runAI(temp,hum){
+
+  let water = 0;
+  let fert = 0;
+  let reason = "";
+
+  if(hum > 85){
+    water = 0;
+    fert = 0;
+    reason = "ดินชื้นมาก";
+  }
+  else if(hum > 60){
+    water = 200;
+    fert = 10;
+    reason = "ความชื้นปกติ";
+  }
+  else if(hum > 40){
+    water = 400;
+    fert = 20;
+    reason = "เริ่มแห้ง";
+  }
+  else{
+    water = 700;
+    fert = 30;
+    reason = "ดินแห้ง";
   }
 
+  if(temp > 35){
+    water += 200;
+    reason += " + อากาศร้อน";
+  }
+
+  document.getElementById("ai").innerText =
+  `💧 น้ำ: ${water} ml\n🌿 ปุ๋ย: ${fert} g\n📊 ${reason}`;
+}
+
+// ===== UPDATE =====
+function update(temp,hum){
+
+  // กันค่าพัง
+  if(temp<-20||temp>60) return;
+  if(hum<0||hum>100) return;
+
+  // smooth
+  temp = smooth(temp,lastTemp);
+  hum = smooth(hum,lastHum);
+
+  lastTemp = temp;
+  lastHum = hum;
+
+  document.getElementById("temp").innerText = temp.toFixed(1)+"°C";
+  document.getElementById("hum").innerText = hum.toFixed(1)+"%";
+
+  labels.push(new Date().toLocaleTimeString());
+  tempData.push(temp);
+  humData.push(hum);
+
+  if(labels.length>12){
+    labels.shift();
+    tempData.shift();
+    humData.shift();
+  }
+
+  chart.update();
+  runAI(temp,hum);
+}
+
+// ===== USB =====
+async function connectUSB(){
   try{
-    setStatus("🔍 กำลังเลือกอุปกรณ์...","text-yellow-400");
-
     port = await navigator.serial.requestPort();
-
     await port.open({ baudRate:115200 });
-
-    setStatus("✅ เชื่อมต่อแล้ว","text-green-400");
 
     const decoder = new TextDecoderStream();
     port.readable.pipeTo(decoder.writable);
     reader = decoder.readable.getReader();
 
     readLoop();
-
-  }catch(e){
-    console.error(e);
-    setStatus("❌ เชื่อมต่อไม่ได้","text-red-400");
+  }catch{
+    alert("❌ เชื่อมต่อไม่ได้");
   }
 }
 
+// ===== READ =====
 async function readLoop(){
   let buffer="";
 
@@ -72,28 +161,26 @@ async function readLoop(){
     if(done) break;
 
     buffer += value;
-
     let lines = buffer.split("\n");
     buffer = lines.pop();
 
     for(let line of lines){
-
       if(!line.includes(",")) continue;
 
       let [t,h] = line.split(",");
-
       let temp = parseFloat(t);
       let hum = parseFloat(h);
 
-      if(isNaN(temp)||isNaN(hum)) continue;
-
-      document.getElementById("temp").innerText = temp;
-      document.getElementById("hum").innerText = hum;
+      if(!isNaN(temp)&&!isNaN(hum)){
+        update(temp,hum);
+      }
     }
   }
 }
 
+// ===== INIT =====
 document.getElementById("connect").onclick = connectUSB;
+initChart();
 </script>
 
 </body>
