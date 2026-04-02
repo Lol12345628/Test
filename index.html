@@ -3,94 +3,100 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Farm AI Ultra</title>
+<title>Smart Farm AI</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/brain.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+.glow {
+  box-shadow: 0 0 25px rgba(0,255,150,0.5);
+}
+</style>
 </head>
 
-<body class="bg-black min-h-screen flex items-center justify-center p-4 text-white">
+<body class="bg-gradient-to-br from-black via-gray-900 to-black text-white min-h-screen flex items-center justify-center p-4">
 
-<div class="fixed inset-0 -z-10">
-  <div class="absolute w-[500px] h-[500px] bg-green-500 blur-[150px] opacity-30 top-[-100px] left-[-100px]"></div>
-  <div class="absolute w-[500px] h-[500px] bg-blue-500 blur-[150px] opacity-30 bottom-[-100px] right-[-100px]"></div>
+<div class="w-full max-w-4xl">
+
+<!-- HEADER -->
+<div class="text-center mb-6">
+  <h1 class="text-4xl font-bold text-green-400">🌱 Smart Farm AI</h1>
+  <p class="text-gray-400">Bluetooth + AI Control</p>
 </div>
 
-<div class="w-full max-w-5xl">
+<!-- CARD -->
+<div class="bg-white/10 backdrop-blur-xl rounded-2xl p-5 shadow-xl">
 
-<div class="text-center mb-8">
-  <h1 class="text-5xl font-extrabold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-    🌱 Smart Farm AI
-  </h1>
-  <p class="text-gray-400">Bluetooth + AI + IoT</p>
-</div>
-
-<div class="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 shadow-2xl">
-
-<div class="flex justify-between items-center mb-6">
-  <div id="status" class="px-4 py-2 rounded-full bg-red-500 animate-pulse font-bold">
-    ❌ ยังไม่เชื่อมต่อ
-  </div>
+<!-- STATUS -->
+<div class="flex justify-between items-center mb-4">
+  <span id="status" class="px-3 py-1 rounded-full bg-red-500 text-sm">
+    ❌ Not Connected
+  </span>
 
   <button id="connect"
-    class="bg-gradient-to-r from-green-400 to-blue-500 px-6 py-3 rounded-full font-bold hover:scale-110 transition">
-    🚀 Connect
+    class="bg-green-500 px-4 py-2 rounded-lg hover:scale-105 transition glow">
+    🔌 Connect
   </button>
 </div>
 
-<div class="grid grid-cols-2 gap-6 mb-6">
-  <div class="bg-black/40 p-6 rounded-2xl text-center">
-    <p class="text-gray-400">🌡 Temperature</p>
-    <p id="temp" class="text-5xl text-red-400 font-bold">--</p>
-  </div>
+<!-- SENSOR -->
+<div class="grid grid-cols-2 gap-4 mb-4">
 
-  <div class="bg-black/40 p-6 rounded-2xl text-center">
-    <p class="text-gray-400">💧 Humidity</p>
-    <p id="hum" class="text-5xl text-blue-400 font-bold">--</p>
-  </div>
+<div class="bg-black/40 p-4 rounded-xl text-center">
+  🌡 Temp
+  <div id="temp" class="text-3xl text-red-400 font-bold">--</div>
 </div>
 
-<div class="bg-gradient-to-br from-green-500/20 to-blue-500/20 p-6 rounded-2xl mb-6">
-  <p class="font-bold mb-2">🤖 AI วิเคราะห์</p>
-  <pre id="ai">ยังไม่มีข้อมูล</pre>
+<div class="bg-black/40 p-4 rounded-xl text-center">
+  💧 Hum
+  <div id="hum" class="text-3xl text-blue-400 font-bold">--</div>
 </div>
 
-<div class="bg-black/40 p-4 rounded-2xl">
-  <canvas id="chart"></canvas>
 </div>
+
+<!-- AI -->
+<div class="bg-green-500/10 p-4 rounded-xl mb-4">
+  <b>🤖 AI Result</b>
+  <pre id="ai" class="text-sm mt-2">Waiting...</pre>
+</div>
+
+<!-- CHART -->
+<canvas id="chart"></canvas>
 
 </div>
 </div>
 
 <script>
 // ===== GLOBAL =====
+let device, charNotify;
 let chart;
-let labels = [], tempData = [], humData = [];
+let labels=[], tempData=[], humData=[];
 let net;
 
 // ===== CHART =====
-function initChart() {
+function initChart(){
   chart = new Chart(document.getElementById("chart"), {
-    type: "line",
-    data: {
+    type:"line",
+    data:{
       labels,
-      datasets: [
-        { label: "Temp", data: tempData },
-        { label: "Hum", data: humData }
+      datasets:[
+        {label:"Temp", data:tempData},
+        {label:"Hum", data:humData}
       ]
     }
   });
 }
 
-function updateChart(temp, hum) {
-  const t = new Date().toLocaleTimeString();
+function updateChart(t,h){
+  let time = new Date().toLocaleTimeString();
 
-  labels.push(t);
-  tempData.push(temp);
-  humData.push(hum);
+  labels.push(time);
+  tempData.push(t);
+  humData.push(h);
 
-  if (labels.length > 12) {
+  if(labels.length>10){
     labels.shift();
     tempData.shift();
     humData.shift();
@@ -100,113 +106,108 @@ function updateChart(temp, hum) {
 }
 
 // ===== STATUS =====
-function setStatus(text, color) {
-  const el = document.getElementById("status");
-  el.innerText = text;
-  el.className = "px-4 py-2 rounded-full font-bold text-white " + color;
+function setStatus(text,color){
+  let s = document.getElementById("status");
+  s.innerText = text;
+  s.className = "px-3 py-1 rounded-full text-sm "+color;
 }
 
 // ===== AI =====
-function trainAI() {
-  net = new brain.NeuralNetwork({ hiddenLayers: [6,6] });
+function trainAI(){
+  net = new brain.NeuralNetwork({hiddenLayers:[6,6]});
 
   net.train([
-    { input: { temp:0.5, hum:0.8 }, output:{water:0.1,fert:0.1}},
-    { input: { temp:0.7, hum:0.4 }, output:{water:0.9,fert:0.7}},
-    { input: { temp:0.6, hum:0.6 }, output:{water:0.4,fert:0.3}},
-    { input: { temp:0.4, hum:0.9 }, output:{water:0.0,fert:0.0}}
+    {input:{temp:0.5,hum:0.8},output:{w:0.1,f:0.1}},
+    {input:{temp:0.7,hum:0.4},output:{w:0.9,f:0.7}},
+    {input:{temp:0.6,hum:0.6},output:{w:0.4,f:0.3}},
+    {input:{temp:0.4,hum:0.9},output:{w:0.0,f:0.0}}
   ]);
 }
 
-function runAI(temp, hum) {
-  const out = net.run({
-    temp: temp/50,
-    hum: hum/100
+function runAI(t,h){
+
+  if(!net) return;
+
+  let out = net.run({
+    temp:t/50,
+    hum:h/100
   });
 
-  let water = Math.round(out.water * 1000);
-  let fert = Math.round(out.fert * 50);
+  let water = Math.round(out.w*1000);
+  let fert = Math.round(out.f*50);
 
-  if (hum > 85) {
-    water = 0;
-    fert = 0;
+  if(h>85){
+    water=0; fert=0;
   }
 
   document.getElementById("ai").innerText =
-    `💧 ${water} ml\n🌿 ${fert} g`;
+  `💧 ${water} ml\n🌿 ${fert} g`;
 }
 
-// ===== BLUETOOTH DEBUG FIX =====
-async function connectBluetooth() {
+// ===== BLUETOOTH =====
+async function connectBluetooth(){
 
-  try {
+  if(!navigator.bluetooth){
+    alert("❌ ใช้ Chrome Android");
+    return;
+  }
 
-    if (!navigator.bluetooth) {
-      alert("❌ ใช้ Chrome Android เท่านั้น");
-      return;
-    }
+  try{
 
-    setStatus("🔍 ค้นหา...", "bg-yellow-500");
+    setStatus("🔍 Searching","bg-yellow-500");
 
-    const device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
+    device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices:true,
+      optionalServices:["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
     });
 
-    console.log("DEVICE:", device.name);
+    let server = await device.gatt.connect();
 
-    setStatus("🔗 เชื่อมต่อ...", "bg-yellow-500");
-
-    const server = await device.gatt.connect();
-    console.log("GATT OK");
-
-    const service = await server.getPrimaryService(
+    let service = await server.getPrimaryService(
       "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
     );
 
-    console.log("SERVICE OK");
-
-    const characteristic = await service.getCharacteristic(
+    charNotify = await service.getCharacteristic(
       "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
     );
 
-    console.log("CHAR OK");
+    await charNotify.startNotifications();
 
-    await characteristic.startNotifications();
-    console.log("NOTIFY OK");
+    charNotify.addEventListener("characteristicvaluechanged", handleData);
 
-    characteristic.addEventListener("characteristicvaluechanged", (event) => {
+    setStatus("✅ Connected","bg-green-500");
 
-      const value = new TextDecoder().decode(event.target.value);
-      console.log("DATA:", value);
-
-      const parts = value.trim().split(",");
-
-      if (parts.length !== 2) return;
-
-      const temp = parseFloat(parts[0]);
-      const hum = parseFloat(parts[1]);
-
-      if (isNaN(temp) || isNaN(hum)) return;
-
-      document.getElementById("temp").innerText = temp + "°C";
-      document.getElementById("hum").innerText = hum + "%";
-
-      updateChart(temp, hum);
-      runAI(temp, hum);
-    });
-
-    setStatus("✅ สำเร็จ", "bg-green-500");
-
-  } catch (err) {
-    console.error(err);
-    alert("❌ ERROR: " + err);
-    setStatus("❌ ล้มเหลว", "bg-red-500");
+  }catch(e){
+    console.error(e);
+    setStatus("❌ Fail","bg-red-500");
+    alert("Error: "+e);
   }
 }
 
+// ===== DATA =====
+function handleData(e){
+
+  let val = new TextDecoder().decode(e.target.value).trim();
+  console.log(val);
+
+  let parts = val.split(",");
+
+  if(parts.length!==2) return;
+
+  let t = parseFloat(parts[0]);
+  let h = parseFloat(parts[1]);
+
+  if(isNaN(t)||isNaN(h)) return;
+
+  document.getElementById("temp").innerText = t+"°C";
+  document.getElementById("hum").innerText = h+"%";
+
+  updateChart(t,h);
+  runAI(t,h);
+}
+
 // ===== INIT =====
-window.onload = () => {
+window.onload = ()=>{
   initChart();
   trainAI();
   document.getElementById("connect").onclick = connectBluetooth;
