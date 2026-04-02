@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm USB</title>
+<title>Smart Farm BME280 USB</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,10 +11,10 @@
 
 <body class="bg-black text-white flex justify-center items-center min-h-screen p-4">
 
-<div class="w-full max-w-4xl bg-white/10 p-6 rounded-3xl shadow-2xl">
+<div class="w-full max-w-4xl bg-white/10 p-6 rounded-3xl">
 
-<h1 class="text-3xl text-center text-green-400 mb-4 font-bold">
-🌱 Smart Farm USB
+<h1 class="text-3xl text-green-400 text-center mb-4">
+🌱 Smart Farm BME280
 </h1>
 
 <button id="connect"
@@ -22,6 +22,7 @@ class="bg-blue-500 w-full py-3 rounded-xl mb-4 font-bold">
 🔌 เชื่อมต่อ USB
 </button>
 
+<!-- SENSOR -->
 <div class="grid grid-cols-2 gap-4 mb-4">
   <div class="bg-black/40 p-4 rounded-xl text-center">
     🌡 <p id="temp" class="text-3xl">--</p>
@@ -31,6 +32,7 @@ class="bg-blue-500 w-full py-3 rounded-xl mb-4 font-bold">
   </div>
 </div>
 
+<!-- AI -->
 <div class="bg-green-900/40 p-4 rounded-xl mb-4">
   <pre id="ai">🤖 รอข้อมูล...</pre>
 </div>
@@ -43,7 +45,7 @@ class="bg-blue-500 w-full py-3 rounded-xl mb-4 font-bold">
 // ===== GLOBAL =====
 let port, reader;
 let chart;
-let labels = [], tempData = [], humData = [];
+let labels=[], tempData=[], humData=[];
 let net;
 
 // ===== AI =====
@@ -53,11 +55,15 @@ function trainAI(){
   net.train([
     {input:{temp:0.5,hum:0.8},output:{water:0.1,fert:0.1}},
     {input:{temp:0.7,hum:0.4},output:{water:0.9,fert:0.7}},
-    {input:{temp:0.6,hum:0.6},output:{water:0.4,fert:0.3}}
+    {input:{temp:0.6,hum:0.6},output:{water:0.4,fert:0.3}},
+    {input:{temp:0.4,hum:0.9},output:{water:0.0,fert:0.0}}
   ]);
 }
 
 function runAI(temp,hum){
+
+  if(isNaN(temp) || isNaN(hum)) return;
+
   const out = net.run({
     temp: temp/50,
     hum: hum/100
@@ -65,6 +71,11 @@ function runAI(temp,hum){
 
   let water = Math.round(out.water*1000);
   let fert = Math.round(out.fert*50);
+
+  if(hum > 85){
+    water = 0;
+    fert = 0;
+  }
 
   document.getElementById("ai").innerText =
   `💧 น้ำ: ${water} ml\n🌿 ปุ๋ย: ${fert} g`;
@@ -77,8 +88,8 @@ function initChart(){
     data:{
       labels,
       datasets:[
-        {label:"Temp",data:tempData},
-        {label:"Hum",data:humData}
+        {label:"Temp (°C)",data:tempData},
+        {label:"Humidity (%)",data:humData}
       ]
     }
   });
@@ -86,6 +97,7 @@ function initChart(){
 
 // ===== UPDATE =====
 function update(temp,hum){
+
   document.getElementById("temp").innerText = temp+"°C";
   document.getElementById("hum").innerText = hum+"%";
 
@@ -93,7 +105,7 @@ function update(temp,hum){
   tempData.push(temp);
   humData.push(hum);
 
-  if(labels.length>10){
+  if(labels.length>12){
     labels.shift();
     tempData.shift();
     humData.shift();
@@ -115,26 +127,40 @@ async function connectUSB(){
 
     readLoop();
 
-  }catch(e){
-    alert("❌ เชื่อมต่อ USB ไม่ได้");
+  }catch{
+    alert("❌ เชื่อมต่อไม่ได้");
   }
 }
 
-// ===== READ =====
+// ===== READ LOOP (เสถียร) =====
 async function readLoop(){
+  let buffer = "";
+
   while(true){
     const {value,done} = await reader.read();
     if(done) break;
 
-    const parts = value.trim().split(",");
+    buffer += value;
 
-    if(parts.length===2){
+    let lines = buffer.split("\n");
+
+    buffer = lines.pop(); // เก็บเศษไว้
+
+    for(let line of lines){
+      line = line.trim();
+
+      if(!line.includes(",")) continue;
+
+      const parts = line.split(",");
+
+      if(parts.length !== 2) continue;
+
       const temp = parseFloat(parts[0]);
       const hum = parseFloat(parts[1]);
 
-      if(!isNaN(temp)&&!isNaN(hum)){
-        update(temp,hum);
-      }
+      if(isNaN(temp) || isNaN(hum)) continue;
+
+      update(temp,hum);
     }
   }
 }
