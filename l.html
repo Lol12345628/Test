@@ -2,38 +2,26 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Farm AI Ultra</title>
+<title>Smart Farm USB</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/brain.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/brain.js"></script>
 </head>
 
-<body class="bg-black text-white min-h-screen flex items-center justify-center p-4">
+<body class="bg-black text-white flex justify-center items-center min-h-screen p-4">
 
-<div class="w-full max-w-4xl">
+<div class="w-full max-w-4xl bg-white/10 p-6 rounded-3xl shadow-2xl">
 
-<h1 class="text-4xl text-center text-green-400 font-bold mb-6">
-🌱 Smart Farm AI
+<h1 class="text-3xl text-center text-green-400 mb-4 font-bold">
+🌱 Smart Farm USB
 </h1>
 
-<div class="bg-white/10 backdrop-blur-xl p-6 rounded-3xl">
+<button id="connect"
+class="bg-blue-500 w-full py-3 rounded-xl mb-4 font-bold">
+🔌 เชื่อมต่อ USB
+</button>
 
-<!-- STATUS -->
-<div class="flex justify-between mb-4">
-  <div id="status" class="bg-red-500 px-4 py-2 rounded-full font-bold">
-    ❌ ยังไม่เชื่อมต่อ
-  </div>
-
-  <button id="connect"
-    class="bg-gradient-to-r from-green-400 to-blue-500 px-5 py-2 rounded-xl font-bold">
-    🔌 Connect
-  </button>
-</div>
-
-<!-- SENSOR -->
 <div class="grid grid-cols-2 gap-4 mb-4">
   <div class="bg-black/40 p-4 rounded-xl text-center">
     🌡 <p id="temp" class="text-3xl">--</p>
@@ -43,7 +31,6 @@
   </div>
 </div>
 
-<!-- AI -->
 <div class="bg-green-900/40 p-4 rounded-xl mb-4">
   <pre id="ai">🤖 รอข้อมูล...</pre>
 </div>
@@ -51,161 +38,113 @@
 <canvas id="chart"></canvas>
 
 </div>
-</div>
 
 <script>
 // ===== GLOBAL =====
-let device, server, service, characteristic;
+let port, reader;
 let chart;
 let labels = [], tempData = [], humData = [];
 let net;
 
+// ===== AI =====
+function trainAI(){
+  net = new brain.NeuralNetwork({hiddenLayers:[6,6]});
+
+  net.train([
+    {input:{temp:0.5,hum:0.8},output:{water:0.1,fert:0.1}},
+    {input:{temp:0.7,hum:0.4},output:{water:0.9,fert:0.7}},
+    {input:{temp:0.6,hum:0.6},output:{water:0.4,fert:0.3}}
+  ]);
+}
+
+function runAI(temp,hum){
+  const out = net.run({
+    temp: temp/50,
+    hum: hum/100
+  });
+
+  let water = Math.round(out.water*1000);
+  let fert = Math.round(out.fert*50);
+
+  document.getElementById("ai").innerText =
+  `💧 น้ำ: ${water} ml\n🌿 ปุ๋ย: ${fert} g`;
+}
+
 // ===== CHART =====
-function initChart() {
-  chart = new Chart(document.getElementById("chart"), {
-    type: "line",
-    data: {
+function initChart(){
+  chart = new Chart(document.getElementById("chart"),{
+    type:"line",
+    data:{
       labels,
-      datasets: [
-        { label: "Temp", data: tempData },
-        { label: "Hum", data: humData }
+      datasets:[
+        {label:"Temp",data:tempData},
+        {label:"Hum",data:humData}
       ]
     }
   });
 }
 
-// ===== AI =====
-function trainAI() {
-  net = new brain.NeuralNetwork({ hiddenLayers: [6,6] });
-
-  net.train([
-    { input:{temp:0.5,hum:0.8}, output:{water:0.1,fert:0.1}},
-    { input:{temp:0.7,hum:0.4}, output:{water:0.9,fert:0.7}},
-    { input:{temp:0.6,hum:0.6}, output:{water:0.4,fert:0.3}},
-    { input:{temp:0.4,hum:0.9}, output:{water:0.0,fert:0.0}}
-  ]);
-}
-
 // ===== UPDATE =====
-function update(temp, hum) {
-  document.getElementById("temp").innerText = temp + "°C";
-  document.getElementById("hum").innerText = hum + "%";
+function update(temp,hum){
+  document.getElementById("temp").innerText = temp+"°C";
+  document.getElementById("hum").innerText = hum+"%";
 
   labels.push(new Date().toLocaleTimeString());
   tempData.push(temp);
   humData.push(hum);
 
-  if (labels.length > 10) {
+  if(labels.length>10){
     labels.shift();
     tempData.shift();
     humData.shift();
   }
 
   chart.update();
-  runAI(temp, hum);
+  runAI(temp,hum);
 }
 
-// ===== AI RUN =====
-function runAI(temp, hum) {
-  const out = net.run({
-    temp: temp / 50,
-    hum: hum / 100
-  });
+// ===== CONNECT USB =====
+async function connectUSB(){
+  try{
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate:115200 });
 
-  let water = Math.round(out.water * 1000);
-  let fert = Math.round(out.fert * 50);
+    const decoder = new TextDecoderStream();
+    port.readable.pipeTo(decoder.writable);
+    reader = decoder.readable.getReader();
 
-  if (hum > 85) {
-    water = 0;
-    fert = 0;
+    readLoop();
+
+  }catch(e){
+    alert("❌ เชื่อมต่อ USB ไม่ได้");
   }
-
-  document.getElementById("ai").innerText =
-    `💧 น้ำ: ${water} ml\n🌿 ปุ๋ย: ${fert} g`;
 }
 
-// ===== STATUS =====
-function setStatus(text, color) {
-  const el = document.getElementById("status");
-  el.innerText = text;
-  el.className = "px-4 py-2 rounded-full font-bold " + color;
-}
+// ===== READ =====
+async function readLoop(){
+  while(true){
+    const {value,done} = await reader.read();
+    if(done) break;
 
-// ===== BLUETOOTH =====
-async function connectBluetooth() {
+    const parts = value.trim().split(",");
 
-  if (!navigator.bluetooth) {
-    alert("❌ ใช้ Chrome Android เท่านั้น");
-    return;
-  }
+    if(parts.length===2){
+      const temp = parseFloat(parts[0]);
+      const hum = parseFloat(parts[1]);
 
-  try {
-
-    setStatus("🔍 กำลังค้นหา...", "bg-yellow-500");
-
-    device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
-    });
-
-    device.addEventListener("gattserverdisconnected", () => {
-      setStatus("⚠️ หลุดการเชื่อมต่อ", "bg-yellow-500");
-    });
-
-    setStatus("🔗 กำลังเชื่อม...", "bg-yellow-500");
-
-    server = await device.gatt.connect();
-
-    service = await server.getPrimaryService(
-      "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
-    );
-
-    characteristic = await service.getCharacteristic(
-      "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
-    );
-
-    await characteristic.startNotifications();
-
-    characteristic.addEventListener(
-      "characteristicvaluechanged",
-      (event) => {
-
-        const val = new TextDecoder().decode(event.target.value);
-        console.log("DATA:", val);
-
-        const parts = val.trim().split(",");
-
-        if (parts.length !== 2) return;
-
-        const temp = parseFloat(parts[0]);
-        const hum = parseFloat(parts[1]);
-
-        if (isNaN(temp) || isNaN(hum)) return;
-
-        update(temp, hum);
+      if(!isNaN(temp)&&!isNaN(hum)){
+        update(temp,hum);
       }
-    );
-
-    setStatus("✅ เชื่อมต่อสำเร็จ", "bg-green-500");
-
-  } catch (err) {
-    console.error(err);
-
-    if (err.name === "NotFoundError") {
-      setStatus("❌ ไม่พบ micro:bit", "bg-red-500");
-      alert("❌ ไม่พบ micro:bit\n👉 เปิด Bluetooth + ใส่โค้ดให้ถูก");
-    } else {
-      setStatus("❌ เชื่อมต่อไม่ได้", "bg-red-500");
     }
   }
 }
 
 // ===== INIT =====
-window.onload = () => {
-  initChart();
-  trainAI();
-  document.getElementById("connect").onclick = connectBluetooth;
-};
+document.getElementById("connect").onclick = connectUSB;
+
+initChart();
+trainAI();
+
 </script>
 
 </body>
