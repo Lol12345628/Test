@@ -12,67 +12,50 @@
 
 <body class="bg-black min-h-screen flex items-center justify-center p-4 text-white">
 
-<!-- BACKGROUND -->
-<div class="fixed inset-0 -z-10">
-  <div class="absolute w-[500px] h-[500px] bg-green-500 blur-[150px] opacity-30 top-[-100px] left-[-100px]"></div>
-  <div class="absolute w-[500px] h-[500px] bg-blue-500 blur-[150px] opacity-30 bottom-[-100px] right-[-100px]"></div>
-</div>
-
 <div class="w-full max-w-5xl">
 
-<!-- HEADER -->
-<div class="text-center mb-8">
-  <h1 class="text-5xl font-extrabold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-    🌱 Smart Farm AI
-  </h1>
-  <p class="text-gray-400">AI + Bluetooth + IoT</p>
-</div>
+<h1 class="text-4xl text-center mb-6 font-bold text-green-400">
+🌱 Smart Farm AI
+</h1>
 
-<!-- CARD -->
-<div class="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 shadow-2xl">
+<div class="bg-white/10 p-6 rounded-3xl">
 
 <!-- STATUS -->
-<div class="flex justify-between items-center mb-6">
-  <div id="status" class="px-4 py-2 rounded-full bg-red-500 animate-pulse font-bold">
+<div class="flex justify-between mb-4">
+  <div id="status" class="bg-red-500 px-4 py-2 rounded-full">
     ❌ ยังไม่เชื่อมต่อ
   </div>
 
   <button id="connect"
-    class="bg-gradient-to-r from-green-400 to-blue-500 px-6 py-3 rounded-full font-bold hover:scale-110 transition">
-    🚀 Connect
+    class="bg-green-500 px-4 py-2 rounded-full">
+    🔌 Connect
   </button>
 </div>
 
 <!-- SENSOR -->
-<div class="grid grid-cols-2 gap-6 mb-6">
-  <div class="bg-black/40 p-6 rounded-2xl text-center">
-    <p class="text-gray-400">🌡 Temperature</p>
-    <p id="temp" class="text-5xl text-red-400 font-bold">--</p>
+<div class="grid grid-cols-2 gap-4 mb-4">
+  <div class="bg-black/50 p-4 rounded-xl text-center">
+    🌡 <p id="temp">--</p>
   </div>
-
-  <div class="bg-black/40 p-6 rounded-2xl text-center">
-    <p class="text-gray-400">💧 Humidity</p>
-    <p id="hum" class="text-5xl text-blue-400 font-bold">--</p>
+  <div class="bg-black/50 p-4 rounded-xl text-center">
+    💧 <p id="hum">--</p>
   </div>
 </div>
 
 <!-- AI -->
-<div class="bg-gradient-to-br from-green-500/20 to-blue-500/20 p-6 rounded-2xl mb-6">
-  <p class="font-bold mb-2">🤖 AI วิเคราะห์</p>
+<div class="bg-green-900 p-4 rounded-xl mb-4">
   <pre id="ai">ยังไม่มีข้อมูล</pre>
 </div>
 
 <!-- CHART -->
-<div class="bg-black/40 p-4 rounded-2xl">
-  <canvas id="chart"></canvas>
-</div>
+<canvas id="chart"></canvas>
 
 </div>
 </div>
 
 <script>
 // ===== GLOBAL =====
-let device, server, service, characteristic;
+let device, server, characteristic;
 let chart;
 let labels = [], tempData = [], humData = [];
 let net;
@@ -84,12 +67,9 @@ function initChart() {
     data: {
       labels,
       datasets: [
-        { label: "Temp", data: tempData, borderWidth: 2 },
-        { label: "Hum", data: humData, borderWidth: 2 }
+        { label: "Temp", data: tempData },
+        { label: "Hum", data: humData }
       ]
-    },
-    options: {
-      responsive: true
     }
   });
 }
@@ -101,7 +81,7 @@ function updateChart(temp, hum) {
   tempData.push(temp);
   humData.push(hum);
 
-  if (labels.length > 12) {
+  if (labels.length > 10) {
     labels.shift();
     tempData.shift();
     humData.shift();
@@ -114,7 +94,7 @@ function updateChart(temp, hum) {
 function setStatus(text, color) {
   const el = document.getElementById("status");
   el.innerText = text;
-  el.className = "px-4 py-2 rounded-full font-bold text-white " + color;
+  el.className = color + " px-4 py-2 rounded-full";
 }
 
 // ===== AI =====
@@ -147,11 +127,11 @@ function runAI(temp, hum) {
     `💧 ${water} ml\n🌿 ${fert} g`;
 }
 
-// ===== BLUETOOTH (FINAL FIX) =====
+// ===== BLUETOOTH (เสถียรแล้ว) =====
 async function connectBluetooth() {
 
   if (!navigator.bluetooth) {
-    alert("❌ ใช้ Chrome Android หรือ PC Chrome เท่านั้น");
+    alert("❌ ใช้ Chrome เท่านั้น");
     return;
   }
 
@@ -159,7 +139,7 @@ async function connectBluetooth() {
     setStatus("🔍 กำลังค้นหา...", "bg-yellow-500");
 
     device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
+      filters: [{ namePrefix: "BBC micro:bit" }],
       optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
     });
 
@@ -167,11 +147,11 @@ async function connectBluetooth() {
       setStatus("⚠️ หลุดการเชื่อมต่อ", "bg-yellow-500");
     });
 
-    setStatus("🔗 กำลังเชื่อมต่อ...", "bg-yellow-500");
+    setStatus("🔗 กำลังเชื่อม...", "bg-yellow-500");
 
     server = await device.gatt.connect();
 
-    service = await server.getPrimaryService(
+    const service = await server.getPrimaryService(
       "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
     );
 
@@ -186,18 +166,18 @@ async function connectBluetooth() {
       handleData
     );
 
-    setStatus("✅ เชื่อมต่อสำเร็จ", "bg-green-500");
+    setStatus("✅ เชื่อมต่อแล้ว", "bg-green-500");
 
   } catch (err) {
     console.error(err);
-    setStatus("❌ เชื่อมต่อไม่สำเร็จ", "bg-red-500");
+    setStatus("❌ ต่อไม่ได้", "bg-red-500");
   }
 }
 
-// ===== DATA (FIX สำคัญ) =====
+// ===== DATA =====
 function handleData(event) {
   const val = new TextDecoder().decode(event.target.value);
-  console.log("DATA:", val);
+  console.log(val);
 
   const parts = val.trim().split(",");
 
@@ -206,7 +186,6 @@ function handleData(event) {
   const temp = parseFloat(parts[0]);
   const hum = parseFloat(parts[1]);
 
-  // 🔥 FIX สำคัญ (0 ต้องผ่านได้)
   if (isNaN(temp) || isNaN(hum)) return;
 
   document.getElementById("temp").innerText = temp + "°C";
