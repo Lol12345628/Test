@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm SIMPLE</title>
+<title>Smart Farm AI CONTROL</title>
 
 <style>
 
@@ -16,7 +16,7 @@ body{
 button{
   padding:12px;
   margin:5px;
-  width:140px;
+  width:160px;
   border:none;
   border-radius:10px;
   cursor:pointer;
@@ -31,7 +31,12 @@ button{
   padding:10px;
   background:#111827;
   display:inline-block;
-  width:150px;
+  width:160px;
+}
+
+.ai{
+  margin-top:10px;
+  color:#38bdf8;
 }
 
 </style>
@@ -39,17 +44,19 @@ button{
 
 <body>
 
-<h2>🤖 Smart Farm SIMPLE FIX</h2>
+<h2>🤖 Smart Farm AI SYSTEM</h2>
 
 <button class="connect" onclick="connectUSB()">Connect</button>
 
 <br>
 
-<button id="p" class="off" onclick="toggle('P1')">Pump</button>
-<button id="l" class="off" onclick="toggle('L1')">Light</button>
-<button id="f" class="off" onclick="toggle('F1')">Fan</button>
+<button id="pump" class="off" onclick="toggle('PUMP_ON','PUMP_OFF','pump')">Pump</button>
+<button id="light" class="off" onclick="toggle('LIGHT_ON','LIGHT_OFF','light')">Light</button>
+<button id="fan" class="off" onclick="toggle('FAN_ON','FAN_OFF','fan')">Fan</button>
 
-<br><br>
+<div class="ai" id="ai">AI: waiting data...</div>
+
+<br>
 
 <div class="box">🌡 <div id="t">-</div></div>
 <div class="box">💧 <div id="h">-</div></div>
@@ -59,8 +66,8 @@ button{
 <script>
 
 let port, writer;
+let state = {pump:0,light:0,fan:0};
 
-// ===== CONNECT =====
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({baudRate:115200});
@@ -68,23 +75,31 @@ async function connectUSB(){
   readLoop();
 }
 
-// ===== SEND =====
 async function send(cmd){
   if(!writer) return;
   await writer.write(new TextEncoder().encode(cmd+"\n"));
 }
 
-// ===== TOGGLE =====
-let state = {P1:0,L1:0,F1:0};
+function toggle(on,off,key){
 
-function toggle(dev){
+  state[key] = state[key] ? 0 : 1;
 
-  state[dev] = state[dev] ? 0 : 1;
+  send(state[key] ? on : off);
 
-  send(dev + "=" + state[dev]);
+  document.getElementById(key).className =
+    state[key] ? "on" : "off";
+}
 
-  document.getElementById(dev.toLowerCase()[0])
-    .className = state[dev] ? "on" : "off";
+// ===== AI DISPLAY =====
+function ai(t,soil,lux){
+
+  let msg="AI: normal";
+
+  if(soil < 30) msg="AI: soil dry → pump ON";
+  else if(t > 35) msg="AI: hot → fan ON";
+  else if(lux < 100) msg="AI: dark → light ON";
+
+  document.getElementById("ai").innerText = msg;
 }
 
 // ===== READ =====
@@ -106,10 +121,14 @@ async function readLoop(){
       let d = l.split(",");
       if(d.length!=4) continue;
 
-      document.getElementById("t").innerText=d[0];
-      document.getElementById("h").innerText=d[1];
-      document.getElementById("s").innerText=d[2];
-      document.getElementById("l").innerText=d[3];
+      let t=+d[0], h=+d[1], s=+d[2], lgt=+d[3];
+
+      document.getElementById("t").innerText=t;
+      document.getElementById("h").innerText=h;
+      document.getElementById("s").innerText=s;
+      document.getElementById("l").innerText=lgt;
+
+      ai(t,s,lgt);
     }
   }
 }
