@@ -2,146 +2,137 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm AI Control</title>
+<title>Smart Farm AI Pro</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body {
   font-family: Arial;
-  background: linear-gradient(135deg,#0f172a,#1e293b);
-  color: white;
-  text-align: center;
-}
-
-h1 { margin-top: 20px; }
-
-.card {
-  background:#111827;
-  padding:15px;
-  margin:10px;
-  border-radius:15px;
-  display:inline-block;
-  width:200px;
+  background:#0f172a;
+  color:white;
+  text-align:center;
 }
 
 button {
-  padding:14px;
-  margin:6px;
+  padding:12px;
+  margin:5px;
   border:none;
-  border-radius:12px;
+  border-radius:10px;
   font-weight:bold;
-  cursor:pointer;
-  width:140px;
-  transition:0.2s;
 }
 
-.on {
-  background:#22c55e;
-  color:white;
-}
+.on { background:#22c55e; }
+.off { background:#ef4444; }
+.connect { background:#3b82f6; }
 
-.off {
-  background:#ef4444;
-  color:white;
-}
-
-.ai {
+canvas {
+  background:white;
+  border-radius:10px;
   margin-top:20px;
-  color:#93c5fd;
-  font-size:14px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🌱 Smart Farm AI</h1>
+<h2>🌱 Smart Farm AI Dashboard</h2>
 
-<div class="card">
-  🌡 Temp: <span id="temp">32</span><br>
-  🌱 Soil: <span id="soil">40</span><br>
-</div>
+<button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
+<button onclick="send('auto_on')">🤖 AUTO MODE</button>
+<button class="off" onclick="send('pump_off')">Pump OFF</button>
 
-<br>
+<div id="ai">AI: waiting data...</div>
 
-<h3>Control</h3>
-
-<button id="pumpBtn" class="off" onclick="toggle('pump')">Pump OFF</button>
-<button id="lightBtn" class="off" onclick="toggle('light')">Light OFF</button>
-<button id="fanBtn" class="off" onclick="toggle('fan')">Fan OFF</button>
-
-<div class="ai" id="aiText">AI: analyzing...</div>
+<canvas id="chart" width="400" height="200"></canvas>
 
 <script>
 
 let port, writer;
+let tempData = [];
+let soilData = [];
+let labels = [];
 
-let state = {
-  pump:false,
-  light:false,
-  fan:false
-};
+// ===== CHART =====
+const ctx = document.getElementById('chart');
+const chart = new Chart(ctx, {
+  type:'line',
+  data:{
+    labels:labels,
+    datasets:[
+      { label:'Temp', data:tempData, borderColor:'red' },
+      { label:'Soil', data:soilData, borderColor:'blue' }
+    ]
+  }
+});
 
-// ===== CONNECT USB =====
+// ===== CONNECT =====
 async function connectUSB(){
   port = await navigator.serial.requestPort();
-  await port.open({ baudRate: 115200 });
+  await port.open({ baudRate:115200 });
   writer = port.writable.getWriter();
-}
-connectUSB(); // auto connect popup
 
-// ===== TOGGLE BUTTON =====
-async function toggle(device){
-
-  if(!writer){
-    alert("ยังไม่ได้ Connect USB");
-    return;
-  }
-
-  state[device] = !state[device];
-
-  let cmd = device + (state[device] ? "_on" : "_off");
-
-  await writer.write(new TextEncoder().encode(cmd + "\n"));
-
-  updateUI();
-  aiAnalyze();
+  readLoop();
 }
 
-// ===== UI COLOR UPDATE =====
-function updateUI(){
-
-  pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
-  lightBtn.innerText = state.light ? "Light ON" : "Light OFF";
-  fanBtn.innerText = state.fan ? "Fan ON" : "Fan OFF";
-
-  pumpBtn.className = state.pump ? "on" : "off";
-  lightBtn.className = state.light ? "on" : "off";
-  fanBtn.className = state.fan ? "on" : "off";
+// ===== SEND =====
+async function send(cmd){
+  if(!writer) return;
+  await writer.write(new TextEncoder().encode(cmd+"\n"));
 }
 
-// ===== AI ANALYSIS =====
-function aiAnalyze(){
+// ===== READ ESP32 =====
+async function readLoop(){
+  const reader = port.readable.getReader();
+  let buffer = "";
 
-  let temp = parseInt(document.getElementById("temp").innerText);
-  let soil = parseInt(document.getElementById("soil").innerText);
+  while(true){
+    const { value } = await reader.read();
+    buffer += new TextDecoder().decode(value);
 
-  let msg = "AI: Normal condition 🌿";
+    let lines = buffer.split("\n");
+    buffer = lines.pop();
 
-  if (soil < 30 && !state.pump) {
-    msg = "AI: Soil dry → Recommend Pump ON 💧";
+    for(let line of lines){
+
+      let [t,s] = line.trim().split(",");
+
+      if(!t || !s) continue;
+
+      tempData.push(parseInt(t));
+      soilData.push(parseInt(s));
+
+      labels.push("");
+
+      if(tempData.length > 20){
+        tempData.shift();
+        soilData.shift();
+        labels.shift();
+      }
+
+      chart.update();
+
+      ai(parseInt(t), parseInt(s));
+    }
   }
-  else if (temp > 35 && !state.fan) {
-    msg = "AI: Hot → Recommend Fan ON 🌬";
-  }
-  else if (state.pump) {
-    msg = "AI: Watering active 💧";
-  }
-
-  document.getElementById("aiText").innerText = msg;
 }
 
-updateUI();
-aiAnalyze();
+// ===== AI =====
+function ai(temp, soil){
+
+  let msg = "AI: Normal 🌿";
+
+  if(soil < 30){
+    msg = "AI: Soil dry → Pump ON 💧";
+    send("pump_on");
+  }
+
+  if(temp > 35){
+    msg = "AI: Hot → Cooling 🌬";
+  }
+
+  document.getElementById("ai").innerText = msg;
+}
 
 </script>
 
