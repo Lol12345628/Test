@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm AI CONTROL</title>
+<title>AI Smart Farm</title>
 
 <style>
 
@@ -44,17 +44,17 @@ button{
 
 <body>
 
-<h2>🤖 Smart Farm AI SYSTEM</h2>
+<h2>🤖 AI Smart Farm CONTROL</h2>
 
 <button class="connect" onclick="connectUSB()">Connect</button>
 
 <br>
 
-<button id="pump" class="off" onclick="toggle('PUMP_ON','PUMP_OFF','pump')">Pump</button>
-<button id="light" class="off" onclick="toggle('LIGHT_ON','LIGHT_OFF','light')">Light</button>
-<button id="fan" class="off" onclick="toggle('FAN_ON','FAN_OFF','fan')">Fan</button>
+<button id="pump" class="off" onclick="send('PUMP_ON')">Pump</button>
+<button id="light" class="off" onclick="send('LIGHT_ON')">Light</button>
+<button id="fan" class="off" onclick="send('FAN_ON')">Fan</button>
 
-<div class="ai" id="ai">AI: waiting data...</div>
+<div class="ai" id="ai">AI: waiting...</div>
 
 <br>
 
@@ -66,8 +66,8 @@ button{
 <script>
 
 let port, writer;
-let state = {pump:0,light:0,fan:0};
 
+// ===== CONNECT =====
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({baudRate:115200});
@@ -75,29 +75,20 @@ async function connectUSB(){
   readLoop();
 }
 
+// ===== SEND =====
 async function send(cmd){
   if(!writer) return;
   await writer.write(new TextEncoder().encode(cmd+"\n"));
 }
 
-function toggle(on,off,key){
-
-  state[key] = state[key] ? 0 : 1;
-
-  send(state[key] ? on : off);
-
-  document.getElementById(key).className =
-    state[key] ? "on" : "off";
-}
-
 // ===== AI DISPLAY =====
-function ai(t,soil,lux){
+function ai(t,s,l){
 
   let msg="AI: normal";
 
-  if(soil < 30) msg="AI: soil dry → pump ON";
-  else if(t > 35) msg="AI: hot → fan ON";
-  else if(lux < 100) msg="AI: dark → light ON";
+  if(s < 30) msg="AI → pump ON (soil dry)";
+  else if(t > 35) msg="AI → fan ON (hot)";
+  else if(l < 100) msg="AI → light ON (dark)";
 
   document.getElementById("ai").innerText = msg;
 }
