@@ -13,7 +13,7 @@ body{
   text-align:center;
 }
 
-/* ===== GRID ===== */
+/* ===== SENSOR GRID ===== */
 .grid{
   display:grid;
   grid-template-columns:repeat(2, 160px);
@@ -22,10 +22,9 @@ body{
   margin-top:20px;
 }
 
-/* ===== CARD ===== */
 .card{
   background:#111827;
-  padding:20px;
+  padding:18px;
   border-radius:16px;
   box-shadow:0 5px 15px rgba(0,0,0,0.4);
 }
@@ -38,15 +37,14 @@ body{
 .value{
   font-size:26px;
   font-weight:bold;
-  margin-top:5px;
 }
 
-/* สีแต่ละ sensor */
-.temp { color:#f87171; }
-.hum  { color:#38bdf8; }
-.soil { color:#22c55e; }
-.lux  { color:#facc15; }
+.temp{ color:#f87171; }
+.hum{ color:#38bdf8; }
+.soil{ color:#22c55e; }
+.lux{ color:#facc15; }
 
+/* ===== BUTTON ===== */
 button{
   padding:12px;
   margin:5px;
@@ -54,9 +52,17 @@ button{
   border-radius:10px;
   font-weight:bold;
   cursor:pointer;
+  width:150px;
 }
 
 .connect{ background:#3b82f6; color:white; }
+
+.on{ background:#22c55e; color:white; }
+.off{ background:#ef4444; color:white; }
+
+.controlBox{
+  margin-top:20px;
+}
 
 </style>
 </head>
@@ -67,16 +73,16 @@ button{
 
 <button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
 
-<!-- SENSOR CARDS -->
+<!-- SENSOR -->
 <div class="grid">
 
   <div class="card">
-    <div class="title">🌡 Temperature</div>
+    <div class="title">🌡 Temp</div>
     <div id="temp" class="value temp">-</div>
   </div>
 
   <div class="card">
-    <div class="title">💧 Humidity</div>
+    <div class="title">💧 Hum</div>
     <div id="hum" class="value hum">-</div>
   </div>
 
@@ -86,25 +92,70 @@ button{
   </div>
 
   <div class="card">
-    <div class="title">💡 Light (Lux)</div>
+    <div class="title">💡 Lux</div>
     <div id="lux" class="value lux">-</div>
   </div>
 
 </div>
 
+<!-- CONTROL -->
+<div class="controlBox">
+
+  <button id="pumpBtn" class="off" onclick="toggle('pump')">Pump OFF</button>
+  <button id="lightBtn" class="off" onclick="toggle('light')">Light OFF</button>
+  <button id="fanBtn" class="off" onclick="toggle('fan')">Fan OFF</button>
+
+</div>
+
 <script>
 
-let port;
+let port, writer;
+
+let state = {
+  pump:false,
+  light:false,
+  fan:false
+};
 
 // 🔌 connect
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({ baudRate:115200 });
+  writer = port.writable.getWriter();
 
   readLoop();
 }
 
-// 📡 read
+// 📤 send command
+async function send(cmd){
+  if(!writer) return;
+  await writer.write(new TextEncoder().encode(cmd + "\n"));
+}
+
+// 🔁 toggle
+async function toggle(dev){
+
+  state[dev] = !state[dev];
+
+  let cmd = dev + (state[dev] ? "_on" : "_off");
+  await send(cmd);
+
+  updateUI();
+}
+
+// 🎨 update buttons
+function updateUI(){
+
+  pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
+  lightBtn.innerText = state.light ? "Light ON" : "Light OFF";
+  fanBtn.innerText = state.fan ? "Fan ON" : "Fan OFF";
+
+  pumpBtn.className = state.pump ? "on" : "off";
+  lightBtn.className = state.light ? "on" : "off";
+  fanBtn.className = state.fan ? "on" : "off";
+}
+
+// 📡 read sensor
 async function readLoop(){
 
   const reader = port.readable.getReader();
