@@ -2,10 +2,9 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm FULL CONTROL</title>
+<title>FIX CONTROL</title>
 
 <style>
-
 body{
   font-family:Arial;
   background:#0f172a;
@@ -13,61 +12,47 @@ body{
   text-align:center;
 }
 
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,160px);
-  gap:15px;
-  justify-content:center;
-  margin-top:20px;
-}
-
-.card{
-  background:#111827;
-  padding:18px;
-  border-radius:12px;
-}
-
-.value{
-  font-size:26px;
-  font-weight:bold;
-}
-
 button{
   padding:12px;
   margin:5px;
+  width:140px;
   border:none;
   border-radius:10px;
   cursor:pointer;
-  width:150px;
 }
 
-.on{ background:#22c55e; color:white; }
-.off{ background:#ef4444; color:white; }
-.auto{ background:#a855f7; color:white; }
-.connect{ background:#3b82f6; color:white; }
+.on{background:#22c55e;color:white;}
+.off{background:#ef4444;color:white;}
+.connect{background:#3b82f6;color:white;}
+.auto{background:#a855f7;color:white;}
 
+.card{
+  margin:10px;
+  padding:10px;
+  background:#111827;
+  display:inline-block;
+  width:150px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>🤖 Smart Farm CONTROL</h2>
+<h2>🔥 FIX SMART FARM</h2>
 
 <button class="connect" onclick="connectUSB()">Connect</button>
-<button class="auto" onclick="toggleAuto()">AUTO</button>
+<button class="auto" onclick="auto()">AUTO</button>
 
 <br>
 
-<button id="pump" class="off" onclick="send('pump_on')">Pump</button>
-<button id="light" class="off" onclick="send('light_on')">Light</button>
-<button id="fan" class="off" onclick="send('fan_on')">Fan</button>
+<button id="p" class="off" onclick="toggle('P1')">Pump</button>
+<button id="l" class="off" onclick="toggle('L1')">Light</button>
+<button id="f" class="off" onclick="toggle('F1')">Fan</button>
 
-<div class="grid">
-  <div class="card">🌡 <div id="t">-</div></div>
-  <div class="card">💧 <div id="h">-</div></div>
-  <div class="card">🌱 <div id="s">-</div></div>
-  <div class="card">💡 <div id="l">-</div></div>
-</div>
+<div class="card">🌡 <div id="t">-</div></div>
+<div class="card">💧 <div id="h">-</div></div>
+<div class="card">🌱 <div id="s">-</div></div>
+<div class="card">💡 <div id="lgt">-</div></div>
 
 <script>
 
@@ -75,9 +60,9 @@ let port, writer;
 
 async function connectUSB(){
   port = await navigator.serial.requestPort();
-  await port.open({ baudRate:115200 });
+  await port.open({baudRate:115200});
   writer = port.writable.getWriter();
-  readLoop();
+  read();
 }
 
 async function send(cmd){
@@ -85,32 +70,44 @@ async function send(cmd){
   await writer.write(new TextEncoder().encode(cmd+"\n"));
 }
 
-function toggleAuto(){
-  send("auto_on");
+let state = {P1:0,L1:0,F1:0};
+
+function toggle(dev){
+
+  state[dev] = state[dev] ? 0 : 1;
+
+  send(dev + "=" + state[dev]);
+
+  document.getElementById(dev.toLowerCase()[0])
+    .className = state[dev] ? "on" : "off";
 }
 
-async function readLoop(){
+function auto(){
+  send("AUTO=1");
+}
+
+async function read(){
 
   const r = port.readable.getReader();
-  let buffer="";
+  let b="";
 
   while(true){
 
     const {value} = await r.read();
-    buffer += new TextDecoder().decode(value);
+    b += new TextDecoder().decode(value);
 
-    let lines = buffer.split("\n");
-    buffer = lines.pop();
+    let lines = b.split("\n");
+    b = lines.pop();
 
-    for(let line of lines){
+    for(let l of lines){
 
-      let d = line.split(",");
+      let d = l.split(",");
       if(d.length!=4) continue;
 
-      document.getElementById("t").innerText = d[0];
-      document.getElementById("h").innerText = d[1];
-      document.getElementById("s").innerText = d[2];
-      document.getElementById("l").innerText = d[3];
+      document.getElementById("t").innerText=d[0];
+      document.getElementById("h").innerText=d[1];
+      document.getElementById("s").innerText=d[2];
+      document.getElementById("lgt").innerText=d[3];
     }
   }
 }
