@@ -1,25 +1,19 @@
-let latest = {
-temp:28,
-hum:65,
-soil:1800,
-lux:250,
-pump:false,
-light:false,
-fan:false
-};
+const server = "";
 
-export default function handler(req,res){
+async function getData() {
+  try {
+    const res = await fetch("/api/data");
+    const data = await res.json();
 
-if(req.method==="POST"){
+    document.getElementById("temp").innerText = data.temp;
+    document.getElementById("hum").innerText = data.hum;
+    document.getElementById("soil").innerText = data.soil;
+    document.getElementById("lux").innerText = data.lux;
 
-latest=req.body;
-
-return res.status(200).json({
-success:true
-});
-
+  } catch (err) {
+    console.log("data error", err);
+  }
 }
 
-res.status(200).json(latest);
-
-}
+setInterval(getData, 3000);
+getData();

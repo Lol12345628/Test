@@ -1,90 +1,38 @@
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
+body {
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+  text-align: center;
 }
 
-body{
-background:#0f172a;
-color:white;
-padding:20px;
+h1 {
+  margin-top: 20px;
 }
 
-header{
-text-align:center;
-margin-bottom:25px;
+.grid {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-header h1{
-color:#22c55e;
+.card {
+  background: #1e293b;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 12px;
+  width: 150px;
 }
 
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-gap:15px;
+.controls {
+  margin-top: 20px;
 }
 
-.card{
-background:#1e293b;
-padding:20px;
-border-radius:20px;
-text-align:center;
-box-shadow:0 0 15px rgba(0,255,100,.15);
-}
-
-.value{
-font-size:2rem;
-font-weight:bold;
-color:#22c55e;
-}
-
-.controls{
-display:flex;
-flex-wrap:wrap;
-justify-content:center;
-gap:10px;
-margin-top:20px;
-}
-
-button{
-padding:12px 20px;
-border:none;
-border-radius:12px;
-cursor:pointer;
-font-weight:bold;
-}
-
-.status{
-display:flex;
-justify-content:center;
-gap:10px;
-margin-top:20px;
-flex-wrap:wrap;
-}
-
-.badge{
-padding:10px 20px;
-border-radius:20px;
-}
-
-.on{
-background:#22c55e;
-}
-
-.off{
-background:#ef4444;
-}
-
-.chart-card{
-margin-top:20px;
-background:white;
-border-radius:20px;
-padding:10px;
-}
-
-#lastUpdate{
-text-align:center;
-margin-top:20px;
+button {
+  margin: 5px;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #38bdf8;
+  color: black;
 }
