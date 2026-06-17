@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌱 Smart Farm Pro</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body>
+
+<header>
+<h1>🌱 Smart Farm Pro</h1>
+<p>ESP32 IoT Dashboard</p>
+</header>
+
+<div class="grid">
+
+<div class="card">
+<h3>🌡️ Temperature</h3>
+<div id="temp" class="value">--</div>
+</div>
+
+<div class="card">
+<h3>💧 Humidity</h3>
+<div id="hum" class="value">--</div>
+</div>
+
+<div class="card">
+<h3>🌱 Soil</h3>
+<div id="soil" class="value">--</div>
+</div>
+
+<div class="card">
+<h3>☀️ Light</h3>
+<div id="lux" class="value">--</div>
+</div>
+
+</div>
+
+<div class="controls">
+
+<button onclick="sendCommand('pump',true)">
+💧 Pump ON
+</button>
+
+<button onclick="sendCommand('pump',false)">
+💧 Pump OFF
+</button>
+
+<button onclick="sendCommand('light',true)">
+💡 Light ON
+</button>
+
+<button onclick="sendCommand('light',false)">
+💡 Light OFF
+</button>
+
+<button onclick="sendCommand('fan',true)">
+🌬️ Fan ON
+</button>
+
+<button onclick="sendCommand('fan',false)">
+🌬️ Fan OFF
+</button>
+
+</div>
+
+<div class="status">
+
+<div id="pumpStatus" class="badge off">
+Pump OFF
+</div>
+
+<div id="lightStatus" class="badge off">
+Light OFF
+</div>
+
+<div id="fanStatus" class="badge off">
+Fan OFF
+</div>
+
+</div>
+
+<div class="chart-card">
+<canvas id="tempChart"></canvas>
+</div>
+
+<div id="lastUpdate">
+Waiting data...
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
