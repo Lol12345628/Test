@@ -1,22 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>USB Smart Farm</title>
+<meta charset="UTF-8">
+<title>Smart Farm Control</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+  text-align: center;
+}
+
+.card {
+  background: #1e293b;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+button {
+  padding: 12px 18px;
+  margin: 5px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.on { background: #22c55e; color: white; }
+.off { background: #ef4444; color: white; }
+</style>
 </head>
 
 <body>
 
-<h2>🌱 USB Smart Farm</h2>
+<h1>🌱 Smart Farm</h1>
 
-<button onclick="send('pump_on')">Pump ON</button>
-<button onclick="send('pump_off')">OFF</button>
+<div class="card">Control Panel</div>
 
-<button onclick="send('light_on')">Light ON</button>
-<button onclick="send('light_off')">OFF</button>
+<br><br>
 
-<button onclick="send('fan_on')">Fan ON</button>
-<button onclick="send('fan_off')">OFF</button>
+<button class="on" onclick="send('pump_on')">Pump ON</button>
+<button class="off" onclick="send('pump_off')">OFF</button>
+<br>
+
+<button class="on" onclick="send('light_on')">Light ON</button>
+<button class="off" onclick="send('light_off')">OFF</button>
+<br>
+
+<button class="on" onclick="send('fan_on')">Fan ON</button>
+<button class="off" onclick="send('fan_off')">OFF</button>
 
 <script>
 async function send(cmd){
