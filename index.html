@@ -2,85 +2,110 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>ESP32 USB UI</title>
+<title>Smart Farm AI Control</title>
 
 <style>
 body {
   font-family: Arial;
-  background: #0f172a;
+  background: linear-gradient(135deg,#0f172a,#1e293b);
   color: white;
   text-align: center;
 }
 
-h2 { margin-top: 20px; }
+h1 { margin-top: 20px; }
 
-button {
-  padding: 12px 18px;
-  margin: 6px;
-  border: none;
-  border-radius: 10px;
-  font-weight: bold;
-  cursor: pointer;
+.card {
+  background: #111827;
+  padding: 15px;
+  margin: 10px;
+  border-radius: 15px;
+  display: inline-block;
+  width: 180px;
 }
 
-.connect { background: #3b82f6; color: white; }
+button {
+  padding: 12px;
+  margin: 5px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+}
 
-.on { background: #22c55e; color: white; }
-.off { background: #ef4444; color: white; }
+.on { background:#22c55e; color:white; }
+.off { background:#ef4444; color:white; }
+
+.status {
+  margin-top: 15px;
+  font-size: 14px;
+  color: #93c5fd;
+}
 </style>
 </head>
 
 <body>
 
-<h2>🌱 ESP32 USB Control (Direct)</h2>
+<h1>🌱 Smart Farm AI</h1>
 
-<button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
-
-<br><br>
-
-<button class="on" onclick="sendCmd('pump_on')">Pump ON</button>
-<button class="off" onclick="sendCmd('pump_off')">OFF</button>
+<div class="card">
+  🌡 Temp: <span id="temp">-</span><br>
+  💧 Soil: <span id="soil">-</span><br>
+</div>
 
 <br>
 
-<button class="on" onclick="sendCmd('light_on')">Light ON</button>
-<button class="off" onclick="sendCmd('light_off')">OFF</button>
+<h3>Control</h3>
 
-<br>
+<button id="pumpBtn" class="off" onclick="toggle('pump')">Pump OFF</button>
+<button id="lightBtn" class="off" onclick="toggle('light')">Light OFF</button>
+<button id="fanBtn" class="off" onclick="toggle('fan')">Fan OFF</button>
 
-<button class="on" onclick="sendCmd('fan_on')">Fan ON</button>
-<button class="off" onclick="sendCmd('fan_off')">OFF</button>
+<div class="status" id="ai">AI: waiting data...</div>
 
 <script>
+let state = {
+  pump: false,
+  light: false,
+  fan: false
+};
 
-let port;
-let writer;
+// ===== toggle กันสลับมั่ว =====
+async function toggle(device){
 
-// ===== CONNECT USB =====
-async function connectUSB() {
-  try {
-    port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 115200 });
+  state[device] = !state[device];
 
-    writer = port.writable.getWriter();
+  updateUI();
 
-    alert("Connected ESP32!");
-  } catch (err) {
-    alert("Connect failed: " + err);
-  }
+  let cmd = device + (state[device] ? "_on" : "_off");
+
+  await send(cmd);
 }
 
-// ===== SEND COMMAND =====
-async function sendCmd(cmd) {
-  if (!writer) {
-    alert("Please connect USB first!");
-    return;
-  }
-
+// ===== ส่ง USB =====
+async function send(cmd){
   const data = new TextEncoder().encode(cmd + "\n");
   await writer.write(data);
 }
 
+// ===== UI update =====
+function updateUI(){
+
+  pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
+  lightBtn.innerText = state.light ? "Light ON" : "Light OFF";
+  fanBtn.innerText = state.fan ? "Fan ON" : "Fan OFF";
+
+  pumpBtn.className = state.pump ? "on" : "off";
+  lightBtn.className = state.light ? "on" : "off";
+  fanBtn.className = state.fan ? "on" : "off";
+}
+
+// ===== AI วิเคราะห์ =====
+function aiAnalyze(temp, soil){
+
+  if (soil < 30) return "AI: Soil dry → suggest pump ON";
+  if (temp > 35) return "AI: Hot → suggest fan ON";
+  return "AI: Normal condition";
+}
 </script>
 
 </body>
