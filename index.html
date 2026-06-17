@@ -2,72 +2,73 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm Control</title>
+<title>ESP32 Control</title>
 
 <style>
 body {
   font-family: Arial;
-  background: linear-gradient(135deg,#0f172a,#1e293b);
+  background: #0f172a;
   color: white;
   text-align: center;
 }
 
-h1 {
-  margin-top: 20px;
-}
-
-.card {
-  background: #111827;
-  padding: 20px;
-  margin: 10px;
-  border-radius: 15px;
-  display: inline-block;
+h2 {
+  margin-top: 30px;
 }
 
 button {
   padding: 12px 18px;
-  margin: 6px;
+  margin: 8px;
   border: none;
   border-radius: 10px;
   font-weight: bold;
   cursor: pointer;
 }
 
-.on { background:#22c55e; color:white; }
-.off { background:#ef4444; color:white; }
+.on { background: #22c55e; color: white; }
+.off { background: #ef4444; color: white; }
 </style>
 </head>
 
 <body>
 
-<h1>🌱 Smart Farm USB Control</h1>
+<h2>🌱 ESP32 Control Panel</h2>
 
-<div class="card">
-  Control Panel
-</div>
-
-<br><br>
-
+<!-- PUMP -->
 <button class="on" onclick="send('pump_on')">Pump ON</button>
 <button class="off" onclick="send('pump_off')">OFF</button>
+
 <br>
 
+<!-- LIGHT -->
 <button class="on" onclick="send('light_on')">Light ON</button>
 <button class="off" onclick="send('light_off')">OFF</button>
+
 <br>
 
+<!-- FAN -->
 <button class="on" onclick="send('fan_on')">Fan ON</button>
 <button class="off" onclick="send('fan_off')">OFF</button>
 
 <script>
 async function send(cmd){
 
-  await fetch("http://localhost:5000/control", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({cmd})
-  });
+  try {
+    const res = await fetch("http://localhost:5000/control", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ cmd })
+    });
 
+    const data = await res.json();
+    console.log("sent:", data);
+
+  } catch (err) {
+    console.log("error:", err);
+    alert("Python Bridge ไม่ทำงาน หรือยังไม่ได้เปิด");
+  }
 }
 </script>
 
