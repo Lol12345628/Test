@@ -2,9 +2,10 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm FIX</title>
+<title>Smart Farm SIMPLE</title>
 
 <style>
+
 body{
   font-family:Arial;
   background:#0f172a;
@@ -23,36 +24,43 @@ button{
 
 .on{background:#22c55e;color:white;}
 .off{background:#ef4444;color:white;}
-.auto{background:#a855f7;color:white;}
 .connect{background:#3b82f6;color:white;}
+
+.box{
+  margin:10px;
+  padding:10px;
+  background:#111827;
+  display:inline-block;
+  width:150px;
+}
+
 </style>
 </head>
 
 <body>
 
-<h2>🤖 Smart Farm FIXED</h2>
+<h2>🤖 Smart Farm SIMPLE FIX</h2>
 
 <button class="connect" onclick="connectUSB()">Connect</button>
-<button class="auto" onclick="toggleAuto()">AUTO</button>
 
 <br>
 
-<button onclick="send('P1=1')" id="p" class="off">Pump</button>
-<button onclick="send('L1=1')" id="l" class="off">Light</button>
-<button onclick="send('F1=1')" id="f" class="off">Fan</button>
+<button id="p" class="off" onclick="toggle('P1')">Pump</button>
+<button id="l" class="off" onclick="toggle('L1')">Light</button>
+<button id="f" class="off" onclick="toggle('F1')">Fan</button>
 
 <br><br>
 
-🌡 <span id="t">-</span><br>
-💧 <span id="h">-</span><br>
-🌱 <span id="s">-</span><br>
-💡 <span id="lgt">-</span>
+<div class="box">🌡 <div id="t">-</div></div>
+<div class="box">💧 <div id="h">-</div></div>
+<div class="box">🌱 <div id="s">-</div></div>
+<div class="box">💡 <div id="l">-</div></div>
 
 <script>
 
 let port, writer;
-let autoMode = false;
 
+// ===== CONNECT =====
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({baudRate:115200});
@@ -60,16 +68,26 @@ async function connectUSB(){
   readLoop();
 }
 
+// ===== SEND =====
 async function send(cmd){
   if(!writer) return;
   await writer.write(new TextEncoder().encode(cmd+"\n"));
 }
 
-function toggleAuto(){
-  autoMode = !autoMode;
-  send("AUTO=" + (autoMode ? 1 : 0));
+// ===== TOGGLE =====
+let state = {P1:0,L1:0,F1:0};
+
+function toggle(dev){
+
+  state[dev] = state[dev] ? 0 : 1;
+
+  send(dev + "=" + state[dev]);
+
+  document.getElementById(dev.toLowerCase()[0])
+    .className = state[dev] ? "on" : "off";
 }
 
+// ===== READ =====
 async function readLoop(){
 
   const r = port.readable.getReader();
@@ -91,7 +109,7 @@ async function readLoop(){
       document.getElementById("t").innerText=d[0];
       document.getElementById("h").innerText=d[1];
       document.getElementById("s").innerText=d[2];
-      document.getElementById("lgt").innerText=d[3];
+      document.getElementById("l").innerText=d[3];
     }
   }
 }
