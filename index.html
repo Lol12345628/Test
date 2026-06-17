@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm FIX AI</title>
+<title>Smart Farm Stable FINAL</title>
 
 <style>
 
@@ -27,7 +27,10 @@ body{
   border-radius:16px;
 }
 
-.value{ font-size:26px; font-weight:bold; }
+.value{
+  font-size:26px;
+  font-weight:bold;
+}
 
 .temp{ color:#f87171; }
 .hum{ color:#38bdf8; }
@@ -54,6 +57,8 @@ button{
   padding:10px;
   background:#1e293b;
   border-radius:10px;
+  display:inline-block;
+  min-width:300px;
 }
 
 </style>
@@ -61,7 +66,7 @@ button{
 
 <body>
 
-<h2>🤖 Smart Farm FIX AI (NO BUG)</h2>
+<h2>🤖 Smart Farm FINAL STABLE</h2>
 
 <button class="connect" onclick="connectUSB()">🔌 Connect</button>
 <button class="auto" onclick="toggleAuto()">AUTO: OFF</button>
@@ -72,6 +77,7 @@ button{
 <button id="lightBtn" class="off" onclick="manual('light')">Light OFF</button>
 <button id="fanBtn" class="off" onclick="manual('fan')">Fan OFF</button>
 
+<!-- SENSOR -->
 <div class="grid">
 
   <div class="card">🌡 <div id="temp" class="value temp">-</div></div>
@@ -87,15 +93,9 @@ button{
 
 let port, writer;
 let autoMode = false;
+let busy = false; // 🔥 กันค้าง
 
-// ===== STATE MEMORY (FIX BUG) =====
-let aiState = {
-  pump:false,
-  light:false,
-  fan:false
-};
-
-// ===== CONNECT =====
+// ================= CONNECT =================
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({ baudRate:115200 });
@@ -105,22 +105,34 @@ async function connectUSB(){
   readLoop();
 }
 
-// ===== SEND SAFE =====
+// ================= SAFE SEND =================
 async function send(cmd){
-  if(!writer) return;
-  await writer.write(new TextEncoder().encode(cmd + "\n"));
+
+  if(!writer || busy) return;
+
+  busy = true;
+
+  try{
+    await writer.write(new TextEncoder().encode(cmd + "\n"));
+  }catch(e){
+    console.log("send error",e);
+  }
+
+  busy = false;
 }
 
-// ===== AUTO TOGGLE =====
+// ================= AUTO =================
 function toggleAuto(){
+
   autoMode = !autoMode;
+
   document.querySelector(".auto").innerText =
     autoMode ? "AUTO: ON" : "AUTO: OFF";
 
   send(autoMode ? "auto_on" : "auto_off");
 }
 
-// ===== MANUAL =====
+// ================= MANUAL =================
 function manual(dev){
 
   if(autoMode){
@@ -130,62 +142,26 @@ function manual(dev){
 
   send(dev + "_on");
 
-  if(dev === "pump") pumpBtn.className = "on";
-  if(dev === "light") lightBtn.className = "on";
-  if(dev === "fan") fanBtn.className = "on";
+  if(dev==="pump") pumpBtn.className="on";
+  if(dev==="light") lightBtn.className="on";
+  if(dev==="fan") fanBtn.className="on";
 }
 
-// ===== AI (FIXED NO SPAM) =====
+// ================= AI DISPLAY ONLY =================
 function AI(temp, hum, soil, lux){
 
   if(!autoMode) return;
 
-  let newState = {
-    pump:false,
-    light:false,
-    fan:false
-  };
-
   let msg = "AI: Normal 🌿";
 
-  // 🌱 soil
-  if(soil < 30){
-    newState.pump = true;
-    msg = "AI: Dry → Pump ON 💧";
-  }
-
-  // 🌡 temp
-  if(temp > 35){
-    newState.fan = true;
-    msg = "AI: Hot → Fan ON 🌬";
-  }
-
-  // 💡 light
-  if(lux < 100){
-    newState.light = true;
-    msg = "AI: Dark → Light ON 💡";
-  }
+  if(soil < 30) msg = "AI: Soil Dry → Pump ON 💧";
+  else if(temp > 35) msg = "AI: Hot → Fan ON 🌬";
+  else if(lux < 100) msg = "AI: Dark → Light ON 💡";
 
   document.getElementById("aiText").innerText = msg;
-
-  // ===== 🔥 SEND ONLY WHEN CHANGE =====
-  if(newState.pump !== aiState.pump){
-    send(newState.pump ? "pump_on" : "pump_off");
-    aiState.pump = newState.pump;
-  }
-
-  if(newState.light !== aiState.light){
-    send(newState.light ? "light_on" : "light_off");
-    aiState.light = newState.light;
-  }
-
-  if(newState.fan !== aiState.fan){
-    send(newState.fan ? "fan_on" : "fan_off");
-    aiState.fan = newState.fan;
-  }
 }
 
-// ===== READ SENSOR =====
+// ================= READ SENSOR (NO FREEZE) =================
 async function readLoop(){
 
   const reader = port.readable.getReader();
@@ -204,22 +180,22 @@ async function readLoop(){
     let lines = buffer.split("\n");
     buffer = lines.pop();
 
-    for(let line of lines){
+    for(let i=0;i<lines.length;i++){
 
-      let d = line.trim().split(",");
+      let d = lines[i].trim().split(",");
       if(d.length !== 4) continue;
 
-      let temp = +d[0];
-      let hum  = +d[1];
-      let soil = +d[2];
-      let lux  = +d[3];
+      let t = +d[0];
+      let h = +d[1];
+      let s = +d[2];
+      let l = +d[3];
 
-      tempEl.innerText = temp.toFixed(1);
-      humEl.innerText  = hum.toFixed(1);
-      soilEl.innerText = soil;
-      luxEl.innerText  = lux.toFixed(0);
+      tempEl.innerText = t.toFixed(1);
+      humEl.innerText  = h.toFixed(1);
+      soilEl.innerText = s;
+      luxEl.innerText  = l.toFixed(0);
 
-      AI(temp, hum, soil, lux);
+      AI(t,h,s,l);
     }
   }
 }
