@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm Full Dashboard</title>
+<title>Smart Farm AI Dashboard</title>
 
 <style>
 
@@ -13,12 +13,7 @@ body{
   text-align:center;
 }
 
-/* ===== TITLE ===== */
-h2{
-  margin-top:20px;
-}
-
-/* ===== GRID SENSOR ===== */
+/* ===== SENSOR GRID ===== */
 .grid{
   display:grid;
   grid-template-columns:repeat(2,160px);
@@ -42,7 +37,6 @@ h2{
 .value{
   font-size:26px;
   font-weight:bold;
-  margin-top:5px;
 }
 
 .temp{ color:#f87171; }
@@ -65,9 +59,14 @@ button{
 .on{ background:#22c55e; color:white; }
 .off{ background:#ef4444; color:white; }
 
-/* ===== CONTROL AREA ===== */
-.control{
+/* ===== AI BOX ===== */
+.aiBox{
   margin-top:20px;
+  padding:12px;
+  background:#1e293b;
+  border-radius:10px;
+  display:inline-block;
+  min-width:300px;
 }
 
 </style>
@@ -75,7 +74,7 @@ button{
 
 <body>
 
-<h2>🌱 Smart Farm Full Dashboard</h2>
+<h2>🤖 Smart Farm AI Dashboard</h2>
 
 <button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
 
@@ -93,54 +92,55 @@ button{
   </div>
 
   <div class="card">
-    <div class="title">🌱 Soil Moisture</div>
+    <div class="title">🌱 Soil</div>
     <div id="soil" class="value soil">-</div>
   </div>
 
   <div class="card">
-    <div class="title">💡 Light (Lux)</div>
+    <div class="title">💡 Light</div>
     <div id="lux" class="value lux">-</div>
   </div>
 
 </div>
 
 <!-- CONTROL -->
-<div class="control">
+<div style="margin-top:20px;">
 
-  <button id="pumpBtn" class="off" onclick="toggle('pump')">Pump OFF</button>
-  <button id="lightBtn" class="off" onclick="toggle('light')">Light OFF</button>
-  <button id="fanBtn" class="off" onclick="toggle('fan')">Fan OFF</button>
+<button id="pumpBtn" class="off" onclick="toggle('pump')">Pump OFF</button>
+<button id="lightBtn" class="off" onclick="toggle('light')">Light OFF</button>
+<button id="fanBtn" class="off" onclick="toggle('fan')">Fan OFF</button>
 
 </div>
+
+<!-- AI STATUS -->
+<div class="aiBox" id="aiText">AI: waiting data...</div>
 
 <script>
 
 let port, writer;
 
-// ===== CONNECT USB =====
-async function connectUSB(){
-
-  port = await navigator.serial.requestPort();
-  await port.open({ baudRate:115200 });
-
-  writer = port.writable.getWriter();
-
-  readLoop();
-}
-
-// ===== SEND COMMAND =====
-async function send(cmd){
-  if(!writer) return;
-  await writer.write(new TextEncoder().encode(cmd + "\n"));
-}
-
-// ===== TOGGLE BUTTON =====
 let state = {
   pump:false,
   light:false,
   fan:false
 };
 
+// ===== CONNECT =====
+async function connectUSB(){
+  port = await navigator.serial.requestPort();
+  await port.open({ baudRate:115200 });
+  writer = port.writable.getWriter();
+
+  readLoop();
+}
+
+// ===== SEND =====
+async function send(cmd){
+  if(!writer) return;
+  await writer.write(new TextEncoder().encode(cmd + "\n"));
+}
+
+// ===== TOGGLE MANUAL =====
 async function toggle(dev){
 
   state[dev] = !state[dev];
@@ -151,7 +151,7 @@ async function toggle(dev){
   updateUI();
 }
 
-// ===== UPDATE UI =====
+// ===== UI UPDATE =====
 function updateUI(){
 
   pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
@@ -163,7 +163,35 @@ function updateUI(){
   fanBtn.className = state.fan ? "on" : "off";
 }
 
-// ===== FAST READ SENSOR =====
+// ===== AI LOGIC =====
+function AI(temp, hum, soil, lux){
+
+  let msg = "AI: Normal 🌿";
+
+  // 🌱 soil สำคัญสุด
+  if(soil < 30){
+    msg = "AI: Soil DRY → Pump ON 💧";
+  }
+
+  // 🌡 ร้อน
+  else if(temp > 35){
+    msg = "AI: Hot → Fan ON 🌬";
+  }
+
+  // 💡 แสงน้อย
+  else if(lux < 100){
+    msg = "AI: Dark → Light ON 💡";
+  }
+
+  // 💧 ชื้นเกิน
+  else if(hum > 85){
+    msg = "AI: Too humid → Fan ON 🌬";
+  }
+
+  document.getElementById("aiText").innerText = msg;
+}
+
+// ===== READ SENSOR =====
 async function readLoop(){
 
   const reader = port.readable.getReader();
@@ -177,10 +205,9 @@ async function readLoop(){
     let lines = buffer.split("\n");
     buffer = lines.pop();
 
-    for(let i=0;i<lines.length;i++){
+    for(let line of lines){
 
-      let d = lines[i].trim().split(",");
-
+      let d = line.trim().split(",");
       if(d.length !== 4) continue;
 
       let temp = +d[0];
@@ -192,6 +219,8 @@ async function readLoop(){
       document.getElementById("hum").innerText  = hum.toFixed(1);
       document.getElementById("soil").innerText = soil;
       document.getElementById("lux").innerText  = lux.toFixed(0);
+
+      AI(temp, hum, soil, lux);
     }
   }
 }
