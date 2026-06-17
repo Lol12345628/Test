@@ -1,8 +1,13 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Farm</title>
+</head>
+
 <body>
 
-<h3>Smart Farm</h3>
+<h2>🌱 Smart Farm</h2>
 
 Temp: <span id="temp">-</span><br>
 Hum: <span id="hum">-</span><br>
@@ -11,16 +16,41 @@ Lux: <span id="lux">-</span><br>
 
 <br>
 
-<button onclick="set('pump',1)">Pump ON</button>
-<button onclick="set('pump',0)">OFF</button>
+<button onclick="setDevice('pump',1)">Pump ON</button>
+<button onclick="setDevice('pump',0)">OFF</button>
 
-<button onclick="set('light',1)">Light ON</button>
-<button onclick="set('light',0)">OFF</button>
+<button onclick="setDevice('light',1)">Light ON</button>
+<button onclick="setDevice('light',0)">OFF</button>
 
-<button onclick="set('fan',1)">Fan ON</button>
-<button onclick="set('fan',0)">OFF</button>
+<button onclick="setDevice('fan',1)">Fan ON</button>
+<button onclick="setDevice('fan',0)">OFF</button>
 
-<script src="script.js"></script>
+<script>
+const server = "https://test-lilac-one.vercel.app";
+
+// ===== โหลด sensor =====
+async function load() {
+  const res = await fetch(server + "/api/data");
+  const d = await res.json();
+
+  temp.innerText = d.temp;
+  hum.innerText = d.hum;
+  soil.innerText = d.soil;
+  lux.innerText = d.lux;
+}
+
+// ===== ส่งคำสั่ง =====
+async function setDevice(device, state) {
+  await fetch(server + "/api/control", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({device, state})
+  });
+}
+
+setInterval(load, 3000);
+load();
+</script>
 
 </body>
 </html>
