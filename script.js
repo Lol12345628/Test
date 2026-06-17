@@ -1,28 +1,20 @@
-// ===== ดึงข้อมูล sensor =====
-async function loadData() {
-  try {
-    const res = await fetch("/api/data");
-    const data = await res.json();
+async function load() {
+  const res = await fetch("/api/data");
+  const d = await res.json();
 
-    document.getElementById("temp").innerText = data.temp;
-    document.getElementById("hum").innerText = data.hum;
-    document.getElementById("soil").innerText = data.soil;
-    document.getElementById("lux").innerText = data.lux;
-
-  } catch (err) {
-    console.log(err);
-  }
+  temp.innerText = d.temp;
+  hum.innerText = d.hum;
+  soil.innerText = d.soil;
+  lux.innerText = d.lux;
 }
 
-// ===== ส่งคำสั่ง =====
-async function setDevice(device, state) {
+async function set(device, state) {
   await fetch("/api/control", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ device, state })
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({device, state})
   });
 }
 
-// refresh ทุก 3 วิ
-setInterval(loadData, 3000);
-loadData();
+setInterval(load, 3000);
+load();

@@ -1,32 +1,24 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Smart Farm</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-
 <body>
 
-<h1>🌱 Smart Farm</h1>
+<h3>Smart Farm</h3>
 
-<div>
-  🌡 Temp: <span id="temp">-</span><br>
-  💧 Hum: <span id="hum">-</span><br>
-  🌱 Soil: <span id="soil">-</span><br>
-  💡 Lux: <span id="lux">-</span>
-</div>
+Temp: <span id="temp">-</span><br>
+Hum: <span id="hum">-</span><br>
+Soil: <span id="soil">-</span><br>
+Lux: <span id="lux">-</span><br>
 
-<hr>
+<br>
 
-<button onclick="setDevice('pump', true)">Pump ON</button>
-<button onclick="setDevice('pump', false)">OFF</button>
+<button onclick="set('pump',1)">Pump ON</button>
+<button onclick="set('pump',0)">OFF</button>
 
-<button onclick="setDevice('light', true)">Light ON</button>
-<button onclick="setDevice('light', false)">OFF</button>
+<button onclick="set('light',1)">Light ON</button>
+<button onclick="set('light',0)">OFF</button>
 
-<button onclick="setDevice('fan', true)">Fan ON</button>
-<button onclick="setDevice('fan', false)">OFF</button>
+<button onclick="set('fan',1)">Fan ON</button>
+<button onclick="set('fan',0)">OFF</button>
 
 <script src="script.js"></script>
 
