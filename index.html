@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm Manual Control</title>
+<title>Smart Farm FIX SYNC</title>
 
 <style>
 body{
@@ -12,20 +12,6 @@ body{
   text-align:center;
 }
 
-.box{
-  display:inline-block;
-  background:#111827;
-  padding:15px;
-  margin:8px;
-  border-radius:12px;
-  width:150px;
-}
-
-.value{
-  font-size:22px;
-  color:#38bdf8;
-}
-
 button{
   padding:12px;
   margin:5px;
@@ -33,41 +19,40 @@ button{
   border-radius:10px;
   font-weight:bold;
   cursor:pointer;
+  width:150px;
 }
 
-.connect{ background:#3b82f6; color:white; }
 .on{ background:#22c55e; color:white; }
 .off{ background:#ef4444; color:white; }
+.connect{ background:#3b82f6; color:white; }
 </style>
 </head>
 
 <body>
 
-<h2>🌱 Smart Farm Manual Control</h2>
+<h2>🌱 Smart Farm FIX SYNC</h2>
 
-<button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
-
-<br><br>
-
-<button onclick="send('pump_on')">Pump ON</button>
-<button onclick="send('pump_off')">Pump OFF</button>
-
-<button onclick="send('light_on')">Light ON</button>
-<button onclick="send('light_off')">Light OFF</button>
-
-<button onclick="send('fan_on')">Fan ON</button>
-<button onclick="send('fan_off')">Fan OFF</button>
+<button class="connect" onclick="connectUSB()">🔌 Connect</button>
 
 <br><br>
 
-<div class="box">🌡 Temp<br><div id="temp" class="value">-</div></div>
-<div class="box">💧 Hum<br><div id="hum" class="value">-</div></div>
-<div class="box">🌱 Soil<br><div id="soil" class="value">-</div></div>
-<div class="box">💡 Lux<br><div id="lux" class="value">-</div></div>
+<button id="pumpBtn" class="off" onclick="send('pump_on','pump_off')">Pump</button>
+<button id="lightBtn" class="off" onclick="send('light_on','light_off')">Light</button>
+<button id="fanBtn" class="off" onclick="send('fan_on','fan_off')">Fan</button>
+
+<br><br>
+
+<div id="data">Waiting...</div>
 
 <script>
 
 let port, writer;
+
+let state = {
+  pump:false,
+  light:false,
+  fan:false
+};
 
 // 🔌 connect
 async function connectUSB(){
@@ -78,13 +63,28 @@ async function connectUSB(){
   readLoop();
 }
 
-// 📤 send
-async function send(cmd){
+// 📤 send toggle
+async function send(onCmd, offCmd){
+
   if(!writer) return;
+
+  let cmd;
+
+  // toggle from REAL state
+  if(onCmd.includes("pump")){
+    cmd = state.pump ? "pump_off" : "pump_on";
+  }
+  else if(onCmd.includes("light")){
+    cmd = state.light ? "light_off" : "light_on";
+  }
+  else if(onCmd.includes("fan")){
+    cmd = state.fan ? "fan_off" : "fan_on";
+  }
+
   await writer.write(new TextEncoder().encode(cmd + "\n"));
 }
 
-// 📡 read sensor
+// 📡 read
 async function readLoop(){
 
   const reader = port.readable.getReader();
@@ -100,15 +100,37 @@ async function readLoop(){
 
     for(let line of lines){
 
-      let d = line.trim().split(",");
-      if(d.length < 4) continue;
+      line = line.trim();
 
-      document.getElementById("temp").innerText = parseFloat(d[0]).toFixed(1);
-      document.getElementById("hum").innerText  = parseFloat(d[1]).toFixed(1);
-      document.getElementById("soil").innerText = d[2];
-      document.getElementById("lux").innerText  = parseFloat(d[3]).toFixed(0);
+      // ===== STATE =====
+      if(line.startsWith("STATE:")){
+        let s = line.replace("STATE:","").split(",");
+
+        state.pump = s[0] == "1";
+        state.light = s[1] == "1";
+        state.fan = s[2] == "1";
+
+        updateUI();
+      }
+
+      // ===== DATA =====
+      if(line.startsWith("DATA:")){
+        document.getElementById("data").innerText = line;
+      }
     }
   }
+}
+
+// 🎨 UI FIX
+function updateUI(){
+
+  pumpBtn.className = state.pump ? "on" : "off";
+  lightBtn.className = state.light ? "on" : "off";
+  fanBtn.className = state.fan ? "on" : "off";
+
+  pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
+  lightBtn.innerText = state.light ? "Light ON" : "Light OFF";
+  fanBtn.innerText = state.fan ? "Fan ON" : "Fan OFF";
 }
 
 </script>
