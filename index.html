@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm NO FREEZE</title>
+<title>Smart Farm Dashboard</title>
 
 <style>
 
@@ -13,9 +13,11 @@ body{
   text-align:center;
 }
 
+h2{ margin-top:20px; }
+
 .grid{
   display:grid;
-  grid-template-columns:repeat(2,160px);
+  grid-template-columns:repeat(2,180px);
   gap:15px;
   justify-content:center;
   margin-top:20px;
@@ -23,33 +25,42 @@ body{
 
 .card{
   background:#111827;
-  padding:18px;
+  padding:20px;
   border-radius:16px;
+  box-shadow:0 0 10px rgba(0,0,0,0.4);
 }
 
-.value{ font-size:26px; }
+.label{
+  font-size:14px;
+  opacity:0.7;
+}
+
+.value{
+  font-size:32px;
+  font-weight:bold;
+  margin-top:5px;
+}
 
 .temp{ color:#f87171; }
 .hum{ color:#38bdf8; }
 .soil{ color:#22c55e; }
 .lux{ color:#facc15; }
 
-button{
+.connect{
+  background:#3b82f6;
+  color:white;
   padding:12px;
-  margin:5px;
   border:none;
   border-radius:10px;
-  width:150px;
+  width:160px;
   font-weight:bold;
+  cursor:pointer;
 }
 
-.connect{ background:#3b82f6; color:white; }
-
-.aiBox{
+.status{
   margin-top:10px;
-  padding:10px;
-  background:#1e293b;
-  border-radius:10px;
+  font-size:14px;
+  opacity:0.8;
 }
 
 </style>
@@ -57,28 +68,42 @@ button{
 
 <body>
 
-<h2>🤖 Smart Farm NO FREEZE</h2>
+<h2>🤖 Smart Farm Dashboard</h2>
 
-<button class="connect" onclick="connectUSB()">🔌 Connect</button>
+<button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
+
+<div class="status" id="status">Waiting connection...</div>
 
 <div class="grid">
-  <div class="card">🌡 <div id="temp">-</div></div>
-  <div class="card">💧 <div id="hum">-</div></div>
-  <div class="card">🌱 <div id="soil">-</div></div>
-  <div class="card">💡 <div id="lux">-</div></div>
-</div>
 
-<div class="aiBox" id="status">status: waiting</div>
+  <div class="card">
+    <div class="label">🌡 Temperature</div>
+    <div class="value temp" id="temp">--</div>
+  </div>
+
+  <div class="card">
+    <div class="label">💧 Humidity</div>
+    <div class="value hum" id="hum">--</div>
+  </div>
+
+  <div class="card">
+    <div class="label">🌱 Soil Moisture</div>
+    <div class="value soil" id="soil">--</div>
+  </div>
+
+  <div class="card">
+    <div class="label">💡 Light (Lux)</div>
+    <div class="value lux" id="lux">--</div>
+  </div>
+
+</div>
 
 <script>
 
 let port;
-let reader;
 let buffer = "";
-
-// ===== THROTTLE UI =====
-let latestData = null;
-let lastRender = 0;
+let latest = null;
+let reader;
 
 // ================= CONNECT =================
 async function connectUSB(){
@@ -86,14 +111,15 @@ async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({ baudRate:115200 });
 
-  startRead();
+  document.getElementById("status").innerText = "Connected ✔";
+
+  readData();
 }
 
-// ================= SAFE READ (NO FREEZE) =================
-async function startRead(){
+// ================= SAFE READ =================
+async function readData(){
 
-  const textDecoder = new TextDecoder();
-
+  const decoder = new TextDecoder();
   reader = port.readable.getReader();
 
   while(true){
@@ -104,7 +130,7 @@ async function startRead(){
 
       if(done) break;
 
-      buffer += textDecoder.decode(value);
+      buffer += decoder.decode(value);
 
       let lines = buffer.split("\n");
       buffer = lines.pop();
@@ -114,51 +140,32 @@ async function startRead(){
         let d = line.trim().split(",");
         if(d.length !== 4) continue;
 
-        latestData = {
-          t:+d[0],
-          h:+d[1],
-          s:+d[2],
-          l:+d[3]
+        latest = {
+          t: +d[0],
+          h: +d[1],
+          s: +d[2],
+          l: +d[3]
         };
       }
 
     }catch(e){
-
       console.log("read error", e);
-
-      // 🔥 reset reader กันค้าง
-      try{
-        reader.releaseLock();
-      }catch{}
-
       break;
     }
   }
 }
 
-// ================= UI LOOP (FIX FREEZE) =================
-function renderLoop(){
+// ================= UI LOOP =================
+setInterval(()=>{
 
-  requestAnimationFrame(renderLoop);
+  if(!latest) return;
 
-  if(!latestData) return;
+  document.getElementById("temp").innerText = latest.t.toFixed(1);
+  document.getElementById("hum").innerText  = latest.h.toFixed(1);
+  document.getElementById("soil").innerText = latest.s;
+  document.getElementById("lux").innerText  = latest.l.toFixed(0);
 
-  const now = Date.now();
-
-  // 🔥 throttle 100ms
-  if(now - lastRender < 100) return;
-  lastRender = now;
-
-  document.getElementById("temp").innerText = latestData.t.toFixed(1);
-  document.getElementById("hum").innerText  = latestData.h.toFixed(1);
-  document.getElementById("soil").innerText = latestData.s;
-  document.getElementById("lux").innerText  = latestData.l.toFixed(0);
-
-  document.getElementById("status").innerText = "LIVE DATA OK";
-}
-
-// start UI loop
-renderLoop();
+}, 100);
 
 </script>
 
