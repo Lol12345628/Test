@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm Dashboard</title>
+<title>Smart Farm WORKING</title>
 
 <style>
 
@@ -13,53 +13,31 @@ body{
   text-align:center;
 }
 
-h2{ margin-top:20px; }
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,180px);
-  gap:15px;
-  justify-content:center;
-  margin-top:20px;
-}
-
-.card{
+.box{
   background:#111827;
   padding:20px;
-  border-radius:16px;
-  box-shadow:0 0 10px rgba(0,0,0,0.4);
-}
-
-.label{
-  font-size:14px;
-  opacity:0.7;
+  margin:10px;
+  border-radius:12px;
+  display:inline-block;
+  width:180px;
 }
 
 .value{
-  font-size:32px;
+  font-size:30px;
   font-weight:bold;
-  margin-top:5px;
 }
 
-.temp{ color:#f87171; }
-.hum{ color:#38bdf8; }
-.soil{ color:#22c55e; }
-.lux{ color:#facc15; }
-
-.connect{
+button{
+  padding:12px;
   background:#3b82f6;
   color:white;
-  padding:12px;
   border:none;
   border-radius:10px;
-  width:160px;
-  font-weight:bold;
   cursor:pointer;
 }
 
 .status{
   margin-top:10px;
-  font-size:14px;
   opacity:0.8;
 }
 
@@ -68,58 +46,45 @@ h2{ margin-top:20px; }
 
 <body>
 
-<h2>🤖 Smart Farm Dashboard</h2>
+<h2>🤖 Smart Farm FIX WORKING</h2>
 
-<button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
+<button onclick="connectUSB()">🔌 Connect</button>
 
-<div class="status" id="status">Waiting connection...</div>
+<div class="status" id="status">not connected</div>
 
-<div class="grid">
-
-  <div class="card">
-    <div class="label">🌡 Temperature</div>
-    <div class="value temp" id="temp">--</div>
-  </div>
-
-  <div class="card">
-    <div class="label">💧 Humidity</div>
-    <div class="value hum" id="hum">--</div>
-  </div>
-
-  <div class="card">
-    <div class="label">🌱 Soil Moisture</div>
-    <div class="value soil" id="soil">--</div>
-  </div>
-
-  <div class="card">
-    <div class="label">💡 Light (Lux)</div>
-    <div class="value lux" id="lux">--</div>
-  </div>
-
-</div>
+<div class="box">🌡 <div id="t" class="value">--</div></div>
+<div class="box">💧 <div id="h" class="value">--</div></div>
+<div class="box">🌱 <div id="s" class="value">--</div></div>
+<div class="box">💡 <div id="l" class="value">--</div></div>
 
 <script>
 
 let port;
-let buffer = "";
-let latest = null;
 let reader;
+let buffer = "";
 
 // ================= CONNECT =================
 async function connectUSB(){
 
-  port = await navigator.serial.requestPort();
-  await port.open({ baudRate:115200 });
+  try{
 
-  document.getElementById("status").innerText = "Connected ✔";
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate:115200 });
 
-  readData();
+    document.getElementById("status").innerText = "connected ✔";
+
+    readLoop();
+
+  }catch(e){
+    alert("connect failed: " + e);
+  }
 }
 
 // ================= SAFE READ =================
-async function readData(){
+async function readLoop(){
 
   const decoder = new TextDecoder();
+
   reader = port.readable.getReader();
 
   while(true){
@@ -137,35 +102,36 @@ async function readData(){
 
       for(let line of lines){
 
-        let d = line.trim().split(",");
-        if(d.length !== 4) continue;
+        line = line.trim();
 
-        latest = {
-          t: +d[0],
-          h: +d[1],
-          s: +d[2],
-          l: +d[3]
-        };
+        // 🔥 กันข้อมูลมั่ว
+        if(line.indexOf(",") === -1) continue;
+
+        let d = line.split(",");
+
+        if(d.length < 4) continue;
+
+        let t = parseFloat(d[0]);
+        let h = parseFloat(d[1]);
+        let s = parseFloat(d[2]);
+        let l = parseFloat(d[3]);
+
+        if(isNaN(t) || isNaN(h) || isNaN(s) || isNaN(l))
+          continue;
+
+        document.getElementById("t").innerText = t.toFixed(1);
+        document.getElementById("h").innerText = h.toFixed(1);
+        document.getElementById("s").innerText = s;
+        document.getElementById("l").innerText = l.toFixed(0);
       }
 
     }catch(e){
       console.log("read error", e);
+      document.getElementById("status").innerText = "disconnected";
       break;
     }
   }
 }
-
-// ================= UI LOOP =================
-setInterval(()=>{
-
-  if(!latest) return;
-
-  document.getElementById("temp").innerText = latest.t.toFixed(1);
-  document.getElementById("hum").innerText  = latest.h.toFixed(1);
-  document.getElementById("soil").innerText = latest.s;
-  document.getElementById("lux").innerText  = latest.l.toFixed(0);
-
-}, 100);
 
 </script>
 
