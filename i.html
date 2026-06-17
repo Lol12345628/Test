@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Farm Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+background:#0f172a;
+font-family:Arial,sans-serif;
+color:white;
+margin:0;
+padding:20px;
+}
+
+h1{
+text-align:center;
+color:#22c55e;
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:15px;
+}
+
+.card{
+background:#1e293b;
+padding:20px;
+border-radius:20px;
+text-align:center;
+}
+
+.value{
+font-size:2rem;
+font-weight:bold;
+color:#22c55e;
+}
+
+.status{
+display:flex;
+justify-content:center;
+gap:10px;
+margin:20px 0;
+flex-wrap:wrap;
+}
+
+.badge{
+padding:10px 15px;
+border-radius:20px;
+font-weight:bold;
+}
+
+.on{
+background:#22c55e;
+}
+
+.off{
+background:#ef4444;
+}
+
+canvas{
+background:white;
+border-radius:15px;
+padding:10px;
+margin-top:20px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>🌱 Smart Farm Dashboard</h1>
+
+<div style="text-align:center">
+<button onclick="connect()">Connect ESP32</button>
+</div>
+
+<br>
+
+<div class="cards">
+
+<div class="card">
+<h3>🌡️ Temperature</h3>
+<div id="temp" class="value">--</div>
+</div>
+
+<div class="card">
+<h3>💧 Humidity</h3>
+<div id="hum" class="value">--</div>
+</div>
+
+<div class="card">
+<h3>🌱 Soil</h3>
+<div id="soil" class="value">--</div>
+</div>
+
+<div class="card">
+<h3>☀️ Light</h3>
+<div id="lux" class="value">--</div>
+</div>
+
+</div>
+
+<div class="status">
+<div id="pump" class="badge off">Pump OFF</div>
+<div id="fan" class="badge off">Fan OFF</div>
+<div id="light" class="badge off">Light OFF</div>
+</div>
+
+<canvas id="tempChart"></canvas>
+
+<script>
+
+let chart;
+
+const ctx=document.getElementById('tempChart');
+
+chart=new Chart(ctx,{
+type:'line',
+data:{
+labels:[],
+datasets:[{
+label:'Temperature',
+data:[]
+}]
+}
+});
+
+async function connect(){
+
+const port=await navigator.serial.requestPort();
+
+await port.open({
+baudRate:115200
+});
+
+const decoder=new TextDecoderStream();
+
+port.readable.pipeTo(decoder.writable);
+
+const reader=decoder.readable.getReader();
+
+while(true){
+
+const {value}=await reader.read();
+
+if(!value) continue;
+
+const lines=value.trim().split("\n");
+
+for(let line of lines){
+
+const d=line.split(",");
+
+if(d.length<7) continue;
+
+const temp=d[0];
+const hum=d[1];
+const soil=d[2];
+const lux=d[3];
+
+document.getElementById("temp").innerText=temp+"°C";
+document.getElementById("hum").innerText=hum+"%";
+document.getElementById("soil").innerText=soil;
+document.getElementById("lux").innerText=lux;
+
+document.getElementById("pump").className=
+d[4]=="1"?"badge on":"badge off";
+
+document.getElementById("fan").className=
+d[5]=="1"?"badge on":"badge off";
+
+document.getElementById("light").className=
+d[6]=="1"?"badge on":"badge off";
+
+chart.data.labels.push(new Date().toLocaleTimeString());
+chart.data.datasets[0].data.push(temp);
+
+if(chart.data.labels.length>20){
+chart.data.labels.shift();
+chart.data.datasets[0].data.shift();
+}
+
+chart.update();
+
+}
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
