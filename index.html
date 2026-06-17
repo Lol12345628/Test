@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>ESP32 Live Data</title>
+<title>Smart Farm AI Full</title>
 
 <style>
 body{
@@ -18,7 +18,7 @@ body{
   padding:15px;
   margin:8px;
   border-radius:12px;
-  width:160px;
+  width:150px;
 }
 
 .value{
@@ -26,22 +26,44 @@ body{
   color:#38bdf8;
 }
 
-.connect{
+button{
   padding:12px;
-  background:#3b82f6;
-  color:white;
+  margin:5px;
   border:none;
   border-radius:10px;
   font-weight:bold;
+  cursor:pointer;
+}
+
+.on{ background:#22c55e; color:white; }
+.off{ background:#ef4444; color:white; }
+.connect{ background:#3b82f6; color:white; }
+
+.ai{
+  margin-top:15px;
+  color:#93c5fd;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🌱 ESP32 LIVE SENSOR</h2>
+<h2>🌱 Smart Farm AI FULL SYSTEM</h2>
 
 <button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
+<button class="on" onclick="send('auto_on')">AUTO ON</button>
+<button class="off" onclick="send('auto_off')">AUTO OFF</button>
+
+<br>
+
+<button onclick="send('pump_on')">Pump ON</button>
+<button onclick="send('pump_off')">Pump OFF</button>
+
+<button onclick="send('light_on')">Light ON</button>
+<button onclick="send('light_off')">Light OFF</button>
+
+<button onclick="send('fan_on')">Fan ON</button>
+<button onclick="send('fan_off')">Fan OFF</button>
 
 <br><br>
 
@@ -50,23 +72,28 @@ body{
 <div class="box">🌱 Soil<br><div id="soil" class="value">-</div></div>
 <div class="box">💡 Lux<br><div id="lux" class="value">-</div></div>
 
-<div id="ai" style="margin-top:20px;color:#93c5fd;">
-AI: waiting data...
-</div>
+<div id="ai" class="ai">AI: waiting...</div>
 
 <script>
 
-let port;
+let port, writer;
 
-// 🔌 connect USB
+// 🔌 connect
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({ baudRate:115200 });
+  writer = port.writable.getWriter();
 
   readLoop();
 }
 
-// 📡 อ่านข้อมูลจาก ESP32
+// 📤 send command
+async function send(cmd){
+  if(!writer) return;
+  await writer.write(new TextEncoder().encode(cmd + "\n"));
+}
+
+// 📡 read sensor
 async function readLoop(){
 
   const reader = port.readable.getReader();
@@ -82,38 +109,37 @@ async function readLoop(){
 
     for(let line of lines){
 
-      let data = line.trim().split(",");
+      let d = line.trim().split(",");
+      if(d.length < 4) continue;
 
-      if(data.length < 4) continue;
+      let temp = parseFloat(d[0]);
+      let hum  = parseFloat(d[1]);
+      let soil = parseInt(d[2]);
+      let lux  = parseFloat(d[3]);
 
-      let temp = parseFloat(data[0]);
-      let hum  = parseFloat(data[1]);
-      let soil = parseInt(data[2]);
-      let lux  = parseFloat(data[3]);
-
-      document.getElementById("temp").innerText = temp.toFixed(1);
-      document.getElementById("hum").innerText  = hum.toFixed(1);
-      document.getElementById("soil").innerText = soil;
-      document.getElementById("lux").innerText  = lux.toFixed(0);
+      tempEl.innerText = temp.toFixed(1);
+      humEl.innerText  = hum.toFixed(1);
+      soilEl.innerText = soil;
+      luxEl.innerText  = lux.toFixed(0);
 
       ai(temp, hum, soil, lux);
     }
   }
 }
 
-// 🤖 AI วิเคราะห์
+// 🤖 AI
 function ai(temp, hum, soil, lux){
 
   let msg = "AI: Normal 🌿";
 
   if(soil < 35){
-    msg = "AI: Soil dry → need water 💧";
+    msg = "AI: Soil dry → Pump ON 💧";
   }
   else if(temp > 35){
-    msg = "AI: Hot → fan ON 🌬";
+    msg = "AI: Hot → Fan ON 🌬";
   }
   else if(lux < 100){
-    msg = "AI: Dark → light ON 💡";
+    msg = "AI: Dark → Light ON 💡";
   }
 
   document.getElementById("ai").innerText = msg;
