@@ -2,15 +2,50 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm FIX SYNC</title>
+<title>Smart Farm Dashboard</title>
 
 <style>
+
 body{
   font-family:Arial;
   background:#0f172a;
   color:white;
   text-align:center;
 }
+
+/* ===== GRID ===== */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2, 160px);
+  gap:15px;
+  justify-content:center;
+  margin-top:20px;
+}
+
+/* ===== CARD ===== */
+.card{
+  background:#111827;
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.4);
+}
+
+.title{
+  font-size:14px;
+  color:#94a3b8;
+}
+
+.value{
+  font-size:26px;
+  font-weight:bold;
+  margin-top:5px;
+}
+
+/* สีแต่ละ sensor */
+.temp { color:#f87171; }
+.hum  { color:#38bdf8; }
+.soil { color:#22c55e; }
+.lux  { color:#facc15; }
 
 button{
   padding:12px;
@@ -19,69 +54,54 @@ button{
   border-radius:10px;
   font-weight:bold;
   cursor:pointer;
-  width:150px;
 }
 
-.on{ background:#22c55e; color:white; }
-.off{ background:#ef4444; color:white; }
 .connect{ background:#3b82f6; color:white; }
+
 </style>
 </head>
 
 <body>
 
-<h2>🌱 Smart Farm FIX SYNC</h2>
+<h2>🌱 Smart Farm Dashboard</h2>
 
-<button class="connect" onclick="connectUSB()">🔌 Connect</button>
+<button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
 
-<br><br>
+<!-- SENSOR CARDS -->
+<div class="grid">
 
-<button id="pumpBtn" class="off" onclick="send('pump_on','pump_off')">Pump</button>
-<button id="lightBtn" class="off" onclick="send('light_on','light_off')">Light</button>
-<button id="fanBtn" class="off" onclick="send('fan_on','fan_off')">Fan</button>
+  <div class="card">
+    <div class="title">🌡 Temperature</div>
+    <div id="temp" class="value temp">-</div>
+  </div>
 
-<br><br>
+  <div class="card">
+    <div class="title">💧 Humidity</div>
+    <div id="hum" class="value hum">-</div>
+  </div>
 
-<div id="data">Waiting...</div>
+  <div class="card">
+    <div class="title">🌱 Soil</div>
+    <div id="soil" class="value soil">-</div>
+  </div>
+
+  <div class="card">
+    <div class="title">💡 Light (Lux)</div>
+    <div id="lux" class="value lux">-</div>
+  </div>
+
+</div>
 
 <script>
 
-let port, writer;
-
-let state = {
-  pump:false,
-  light:false,
-  fan:false
-};
+let port;
 
 // 🔌 connect
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({ baudRate:115200 });
-  writer = port.writable.getWriter();
 
   readLoop();
-}
-
-// 📤 send toggle
-async function send(onCmd, offCmd){
-
-  if(!writer) return;
-
-  let cmd;
-
-  // toggle from REAL state
-  if(onCmd.includes("pump")){
-    cmd = state.pump ? "pump_off" : "pump_on";
-  }
-  else if(onCmd.includes("light")){
-    cmd = state.light ? "light_off" : "light_on";
-  }
-  else if(onCmd.includes("fan")){
-    cmd = state.fan ? "fan_off" : "fan_on";
-  }
-
-  await writer.write(new TextEncoder().encode(cmd + "\n"));
 }
 
 // 📡 read
@@ -100,37 +120,15 @@ async function readLoop(){
 
     for(let line of lines){
 
-      line = line.trim();
+      let d = line.trim().split(",");
+      if(d.length < 4) continue;
 
-      // ===== STATE =====
-      if(line.startsWith("STATE:")){
-        let s = line.replace("STATE:","").split(",");
-
-        state.pump = s[0] == "1";
-        state.light = s[1] == "1";
-        state.fan = s[2] == "1";
-
-        updateUI();
-      }
-
-      // ===== DATA =====
-      if(line.startsWith("DATA:")){
-        document.getElementById("data").innerText = line;
-      }
+      document.getElementById("temp").innerText = parseFloat(d[0]).toFixed(1);
+      document.getElementById("hum").innerText  = parseFloat(d[1]).toFixed(1);
+      document.getElementById("soil").innerText = d[2];
+      document.getElementById("lux").innerText  = parseFloat(d[3]).toFixed(0);
     }
   }
-}
-
-// 🎨 UI FIX
-function updateUI(){
-
-  pumpBtn.className = state.pump ? "on" : "off";
-  lightBtn.className = state.light ? "on" : "off";
-  fanBtn.className = state.fan ? "on" : "off";
-
-  pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
-  lightBtn.innerText = state.light ? "Light ON" : "Light OFF";
-  fanBtn.innerText = state.fan ? "Fan ON" : "Fan OFF";
 }
 
 </script>
