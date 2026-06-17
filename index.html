@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm WORKING</title>
+<title>Smart Farm FULL CONTROL</title>
 
 <style>
 
@@ -13,122 +13,104 @@ body{
   text-align:center;
 }
 
-.box{
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,160px);
+  gap:15px;
+  justify-content:center;
+  margin-top:20px;
+}
+
+.card{
   background:#111827;
-  padding:20px;
-  margin:10px;
+  padding:18px;
   border-radius:12px;
-  display:inline-block;
-  width:180px;
 }
 
 .value{
-  font-size:30px;
+  font-size:26px;
   font-weight:bold;
 }
 
 button{
   padding:12px;
-  background:#3b82f6;
-  color:white;
+  margin:5px;
   border:none;
   border-radius:10px;
   cursor:pointer;
+  width:150px;
 }
 
-.status{
-  margin-top:10px;
-  opacity:0.8;
-}
+.on{ background:#22c55e; color:white; }
+.off{ background:#ef4444; color:white; }
+.auto{ background:#a855f7; color:white; }
+.connect{ background:#3b82f6; color:white; }
 
 </style>
 </head>
 
 <body>
 
-<h2>🤖 Smart Farm FIX WORKING</h2>
+<h2>🤖 Smart Farm CONTROL</h2>
 
-<button onclick="connectUSB()">🔌 Connect</button>
+<button class="connect" onclick="connectUSB()">Connect</button>
+<button class="auto" onclick="toggleAuto()">AUTO</button>
 
-<div class="status" id="status">not connected</div>
+<br>
 
-<div class="box">🌡 <div id="t" class="value">--</div></div>
-<div class="box">💧 <div id="h" class="value">--</div></div>
-<div class="box">🌱 <div id="s" class="value">--</div></div>
-<div class="box">💡 <div id="l" class="value">--</div></div>
+<button id="pump" class="off" onclick="send('pump_on')">Pump</button>
+<button id="light" class="off" onclick="send('light_on')">Light</button>
+<button id="fan" class="off" onclick="send('fan_on')">Fan</button>
+
+<div class="grid">
+  <div class="card">🌡 <div id="t">-</div></div>
+  <div class="card">💧 <div id="h">-</div></div>
+  <div class="card">🌱 <div id="s">-</div></div>
+  <div class="card">💡 <div id="l">-</div></div>
+</div>
 
 <script>
 
-let port;
-let reader;
-let buffer = "";
+let port, writer;
 
-// ================= CONNECT =================
 async function connectUSB(){
-
-  try{
-
-    port = await navigator.serial.requestPort();
-    await port.open({ baudRate:115200 });
-
-    document.getElementById("status").innerText = "connected ✔";
-
-    readLoop();
-
-  }catch(e){
-    alert("connect failed: " + e);
-  }
+  port = await navigator.serial.requestPort();
+  await port.open({ baudRate:115200 });
+  writer = port.writable.getWriter();
+  readLoop();
 }
 
-// ================= SAFE READ =================
+async function send(cmd){
+  if(!writer) return;
+  await writer.write(new TextEncoder().encode(cmd+"\n"));
+}
+
+function toggleAuto(){
+  send("auto_on");
+}
+
 async function readLoop(){
 
-  const decoder = new TextDecoder();
-
-  reader = port.readable.getReader();
+  const r = port.readable.getReader();
+  let buffer="";
 
   while(true){
 
-    try{
+    const {value} = await r.read();
+    buffer += new TextDecoder().decode(value);
 
-      const { value, done } = await reader.read();
+    let lines = buffer.split("\n");
+    buffer = lines.pop();
 
-      if(done) break;
+    for(let line of lines){
 
-      buffer += decoder.decode(value);
+      let d = line.split(",");
+      if(d.length!=4) continue;
 
-      let lines = buffer.split("\n");
-      buffer = lines.pop();
-
-      for(let line of lines){
-
-        line = line.trim();
-
-        // 🔥 กันข้อมูลมั่ว
-        if(line.indexOf(",") === -1) continue;
-
-        let d = line.split(",");
-
-        if(d.length < 4) continue;
-
-        let t = parseFloat(d[0]);
-        let h = parseFloat(d[1]);
-        let s = parseFloat(d[2]);
-        let l = parseFloat(d[3]);
-
-        if(isNaN(t) || isNaN(h) || isNaN(s) || isNaN(l))
-          continue;
-
-        document.getElementById("t").innerText = t.toFixed(1);
-        document.getElementById("h").innerText = h.toFixed(1);
-        document.getElementById("s").innerText = s;
-        document.getElementById("l").innerText = l.toFixed(0);
-      }
-
-    }catch(e){
-      console.log("read error", e);
-      document.getElementById("status").innerText = "disconnected";
-      break;
+      document.getElementById("t").innerText = d[0];
+      document.getElementById("h").innerText = d[1];
+      document.getElementById("s").innerText = d[2];
+      document.getElementById("l").innerText = d[3];
     }
   }
 }
