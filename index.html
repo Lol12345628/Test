@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm Control</title>
+<title>Smart Farm Manual Control</title>
 
 <style>
 body{
@@ -35,21 +35,19 @@ button{
   cursor:pointer;
 }
 
+.connect{ background:#3b82f6; color:white; }
 .on{ background:#22c55e; color:white; }
 .off{ background:#ef4444; color:white; }
-.connect{ background:#3b82f6; color:white; }
 </style>
 </head>
 
 <body>
 
-<h2>🌱 Smart Farm Control</h2>
+<h2>🌱 Smart Farm Manual Control</h2>
 
 <button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
-<button class="on" onclick="send('auto_on')">AUTO ON</button>
-<button class="off" onclick="send('auto_off')">AUTO OFF</button>
 
-<br>
+<br><br>
 
 <button onclick="send('pump_on')">Pump ON</button>
 <button onclick="send('pump_off')">Pump OFF</button>
@@ -86,7 +84,7 @@ async function send(cmd){
   await writer.write(new TextEncoder().encode(cmd + "\n"));
 }
 
-// 📡 read
+// 📡 read sensor
 async function readLoop(){
 
   const reader = port.readable.getReader();
