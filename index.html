@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm Dashboard</title>
+<title>Smart Farm Full Dashboard</title>
 
 <style>
 
@@ -13,10 +13,15 @@ body{
   text-align:center;
 }
 
-/* ===== SENSOR GRID ===== */
+/* ===== TITLE ===== */
+h2{
+  margin-top:20px;
+}
+
+/* ===== GRID SENSOR ===== */
 .grid{
   display:grid;
-  grid-template-columns:repeat(2, 160px);
+  grid-template-columns:repeat(2,160px);
   gap:15px;
   justify-content:center;
   margin-top:20px;
@@ -37,6 +42,7 @@ body{
 .value{
   font-size:26px;
   font-weight:bold;
+  margin-top:5px;
 }
 
 .temp{ color:#f87171; }
@@ -56,11 +62,11 @@ button{
 }
 
 .connect{ background:#3b82f6; color:white; }
-
 .on{ background:#22c55e; color:white; }
 .off{ background:#ef4444; color:white; }
 
-.controlBox{
+/* ===== CONTROL AREA ===== */
+.control{
   margin-top:20px;
 }
 
@@ -69,7 +75,7 @@ button{
 
 <body>
 
-<h2>🌱 Smart Farm Dashboard</h2>
+<h2>🌱 Smart Farm Full Dashboard</h2>
 
 <button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
 
@@ -77,29 +83,29 @@ button{
 <div class="grid">
 
   <div class="card">
-    <div class="title">🌡 Temp</div>
+    <div class="title">🌡 Temperature</div>
     <div id="temp" class="value temp">-</div>
   </div>
 
   <div class="card">
-    <div class="title">💧 Hum</div>
+    <div class="title">💧 Humidity</div>
     <div id="hum" class="value hum">-</div>
   </div>
 
   <div class="card">
-    <div class="title">🌱 Soil</div>
+    <div class="title">🌱 Soil Moisture</div>
     <div id="soil" class="value soil">-</div>
   </div>
 
   <div class="card">
-    <div class="title">💡 Lux</div>
+    <div class="title">💡 Light (Lux)</div>
     <div id="lux" class="value lux">-</div>
   </div>
 
 </div>
 
 <!-- CONTROL -->
-<div class="controlBox">
+<div class="control">
 
   <button id="pumpBtn" class="off" onclick="toggle('pump')">Pump OFF</button>
   <button id="lightBtn" class="off" onclick="toggle('light')">Light OFF</button>
@@ -111,28 +117,30 @@ button{
 
 let port, writer;
 
+// ===== CONNECT USB =====
+async function connectUSB(){
+
+  port = await navigator.serial.requestPort();
+  await port.open({ baudRate:115200 });
+
+  writer = port.writable.getWriter();
+
+  readLoop();
+}
+
+// ===== SEND COMMAND =====
+async function send(cmd){
+  if(!writer) return;
+  await writer.write(new TextEncoder().encode(cmd + "\n"));
+}
+
+// ===== TOGGLE BUTTON =====
 let state = {
   pump:false,
   light:false,
   fan:false
 };
 
-// 🔌 connect
-async function connectUSB(){
-  port = await navigator.serial.requestPort();
-  await port.open({ baudRate:115200 });
-  writer = port.writable.getWriter();
-
-  readLoop();
-}
-
-// 📤 send command
-async function send(cmd){
-  if(!writer) return;
-  await writer.write(new TextEncoder().encode(cmd + "\n"));
-}
-
-// 🔁 toggle
 async function toggle(dev){
 
   state[dev] = !state[dev];
@@ -143,7 +151,7 @@ async function toggle(dev){
   updateUI();
 }
 
-// 🎨 update buttons
+// ===== UPDATE UI =====
 function updateUI(){
 
   pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
@@ -155,7 +163,7 @@ function updateUI(){
   fanBtn.className = state.fan ? "on" : "off";
 }
 
-// 📡 read sensor
+// ===== FAST READ SENSOR =====
 async function readLoop(){
 
   const reader = port.readable.getReader();
@@ -169,15 +177,21 @@ async function readLoop(){
     let lines = buffer.split("\n");
     buffer = lines.pop();
 
-    for(let line of lines){
+    for(let i=0;i<lines.length;i++){
 
-      let d = line.trim().split(",");
-      if(d.length < 4) continue;
+      let d = lines[i].trim().split(",");
 
-      document.getElementById("temp").innerText = parseFloat(d[0]).toFixed(1);
-      document.getElementById("hum").innerText  = parseFloat(d[1]).toFixed(1);
-      document.getElementById("soil").innerText = d[2];
-      document.getElementById("lux").innerText  = parseFloat(d[3]).toFixed(0);
+      if(d.length !== 4) continue;
+
+      let temp = +d[0];
+      let hum  = +d[1];
+      let soil = +d[2];
+      let lux  = +d[3];
+
+      document.getElementById("temp").innerText = temp.toFixed(1);
+      document.getElementById("hum").innerText  = hum.toFixed(1);
+      document.getElementById("soil").innerText = soil;
+      document.getElementById("lux").innerText  = lux.toFixed(0);
     }
   }
 }
