@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm AI + Manual</title>
+<title>Smart Farm FIX</title>
 
 <style>
 
@@ -57,8 +57,6 @@ button{
   padding:10px;
   background:#1e293b;
   border-radius:10px;
-  display:inline-block;
-  min-width:300px;
 }
 
 </style>
@@ -66,7 +64,7 @@ button{
 
 <body>
 
-<h2>🤖 Smart Farm AI + Manual</h2>
+<h2>🤖 Smart Farm FIX VERSION</h2>
 
 <button class="connect" onclick="connectUSB()">🔌 Connect</button>
 <button class="auto" onclick="toggleAuto()">AUTO: OFF</button>
@@ -77,7 +75,6 @@ button{
 <button id="lightBtn" class="off" onclick="manual('light')">Light OFF</button>
 <button id="fanBtn" class="off" onclick="manual('fan')">Fan OFF</button>
 
-<!-- SENSOR -->
 <div class="grid">
 
   <div class="card">🌡 <div id="temp" class="value temp">-</div></div>
@@ -92,33 +89,34 @@ button{
 <script>
 
 let port, writer;
-
 let autoMode = false;
 
-// ================= CONNECT =================
+// ===== CONNECT =====
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({ baudRate:115200 });
+
   writer = port.writable.getWriter();
 
   readLoop();
 }
 
-// ================= SEND =================
+// ===== SEND =====
 async function send(cmd){
   if(!writer) return;
   await writer.write(new TextEncoder().encode(cmd + "\n"));
 }
 
-// ================= TOGGLE AUTO =================
+// ===== AUTO TOGGLE =====
 function toggleAuto(){
   autoMode = !autoMode;
-  document.querySelector(".auto").innerText = autoMode ? "AUTO: ON" : "AUTO: OFF";
+  document.querySelector(".auto").innerText =
+    autoMode ? "AUTO: ON" : "AUTO: OFF";
 
   send(autoMode ? "auto_on" : "auto_off");
 }
 
-// ================= MANUAL CONTROL =================
+// ===== MANUAL =====
 function manual(dev){
 
   if(autoMode){
@@ -133,7 +131,7 @@ function manual(dev){
   updateButtons(dev);
 }
 
-// ================= BUTTON UI =================
+// ===== FIX UI =====
 function updateButtons(dev){
 
   if(dev === "pump"){
@@ -152,7 +150,7 @@ function updateButtons(dev){
   }
 }
 
-// ================= AI RULE =================
+// ===== AI =====
 function AI(temp, hum, soil, lux){
 
   if(!autoMode) return;
@@ -160,26 +158,32 @@ function AI(temp, hum, soil, lux){
   let msg = "AI: Normal";
 
   if(soil < 30){
-    msg = "AI: Dry soil → Pump ON 💧";
+    msg = "AI: Dry → Pump ON";
     send("pump_on");
   }
   else if(temp > 35){
-    msg = "AI: Hot → Fan ON 🌬";
+    msg = "AI: Hot → Fan ON";
     send("fan_on");
   }
   else if(lux < 100){
-    msg = "AI: Dark → Light ON 💡";
+    msg = "AI: Dark → Light ON";
     send("light_on");
   }
 
   document.getElementById("aiText").innerText = msg;
 }
 
-// ================= READ =================
+// ===== READ FIXED =====
 async function readLoop(){
 
   const reader = port.readable.getReader();
   let buffer = "";
+
+  // ✅ FIX: ประกาศ element ชัดเจน
+  const tempEl = document.getElementById("temp");
+  const humEl  = document.getElementById("hum");
+  const soilEl = document.getElementById("soil");
+  const luxEl  = document.getElementById("lux");
 
   while(true){
 
