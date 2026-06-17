@@ -1,21 +1,19 @@
-async function setDevice(device, state) {
+let state = {
+  pump: false,
+  light: false,
+  fan: false
+};
 
-  try {
-    const res = await fetch("/api/control", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        device,
-        state
-      })
-    });
+export default function handler(req, res) {
 
-    const data = await res.json();
-    console.log(data);
+  if (req.method === "GET") {
+    return res.json(state);
+  }
 
-  } catch (err) {
-    console.log("control error", err);
+  if (req.method === "POST") {
+    const { device, state: value } = req.body;
+    state[device] = value;
+
+    return res.json({ ok: true, state });
   }
 }

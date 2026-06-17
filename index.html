@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <title>Smart Farm</title>
@@ -8,28 +8,26 @@
 
 <body>
 
-<h1>🌱 Smart Farm Dashboard</h1>
+<h1>🌱 Smart Farm</h1>
 
-<div class="grid">
-  <div class="card">🌡 Temp <h2 id="temp">-</h2></div>
-  <div class="card">💧 Hum <h2 id="hum">-</h2></div>
-  <div class="card">🌱 Soil <h2 id="soil">-</h2></div>
-  <div class="card">💡 Lux <h2 id="lux">-</h2></div>
+<div>
+  🌡 Temp: <span id="temp">-</span><br>
+  💧 Hum: <span id="hum">-</span><br>
+  🌱 Soil: <span id="soil">-</span><br>
+  💡 Lux: <span id="lux">-</span>
 </div>
 
-<div class="controls">
-  <button onclick="setDevice('pump', true)">Pump ON</button>
-  <button onclick="setDevice('pump', false)">OFF</button>
+<hr>
 
-  <button onclick="setDevice('light', true)">Light ON</button>
-  <button onclick="setDevice('light', false)">OFF</button>
+<button onclick="setDevice('pump', true)">Pump ON</button>
+<button onclick="setDevice('pump', false)">OFF</button>
 
-  <button onclick="setDevice('fan', true)">Fan ON</button>
-  <button onclick="setDevice('fan', false)">OFF</button>
-</div>
+<button onclick="setDevice('light', true)">Light ON</button>
+<button onclick="setDevice('light', false)">OFF</button>
 
-<script src="data.js"></script>
-<script src="control.js"></script>
+<button onclick="setDevice('fan', true)">Fan ON</button>
+<button onclick="setDevice('fan', false)">OFF</button>
+
 <script src="script.js"></script>
 
 </body>

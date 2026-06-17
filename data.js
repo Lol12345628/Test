@@ -1,19 +1,15 @@
-const server = "";
+let latest = {
+  temp: 0,
+  hum: 0,
+  soil: 0,
+  lux: 0
+};
 
-async function getData() {
-  try {
-    const res = await fetch("/api/data");
-    const data = await res.json();
-
-    document.getElementById("temp").innerText = data.temp;
-    document.getElementById("hum").innerText = data.hum;
-    document.getElementById("soil").innerText = data.soil;
-    document.getElementById("lux").innerText = data.lux;
-
-  } catch (err) {
-    console.log("data error", err);
+export default function handler(req, res) {
+  if (req.method === "POST") {
+    latest = req.body; // ESP32 ส่งมา
+    return res.json({ ok: true });
   }
-}
 
-setInterval(getData, 3000);
-getData();
+  res.json(latest);
+}
