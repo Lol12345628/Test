@@ -1,71 +1,123 @@
-<script>
+<!DOCTYPE html>
 
-const ctx = document.getElementById('tempChart');
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌱 Smart Farm AI Pro</title>
+</head>
 
-const chart = new Chart(ctx,{
-  type:'line',
-  data:{
-    labels:[],
-    datasets:[{
-      label:'Temperature °C',
-      data:[]
-    }]
-  }
-});
+<body>
 
-function updateDashboard(data){
+<!-- Header -->
 
-  document.getElementById("temp").innerHTML=data.temp+"°C";
-  document.getElementById("hum").innerHTML=data.hum+"%";
-  document.getElementById("soil").innerHTML=data.soil;
-  document.getElementById("lux").innerHTML=data.lux;
+<header>
+  <h1>🌱 Smart Farm AI Pro</h1>
+  <p>IoT Monitoring System</p>
+</header>
 
-  document.getElementById("pump").className =
-    data.pump ? "badge on":"badge off";
+<!-- Summary Cards -->
 
-  document.getElementById("light").className =
-    data.light ? "badge on":"badge off";
+<section id="dashboard">
 
-  document.getElementById("fan").className =
-    data.fan ? "badge on":"badge off";
+  <div class="card">
+    <h3>🌡️ Temperature</h3>
+    <div id="temp">-- °C</div>
+  </div>
 
-  chart.data.labels.push(
-    new Date().toLocaleTimeString()
-  );
+  <div class="card">
+    <h3>💧 Humidity</h3>
+    <div id="hum">-- %</div>
+  </div>
 
-  chart.data.datasets[0].data.push(data.temp);
+  <div class="card">
+    <h3>🌱 Soil Moisture</h3>
+    <div id="soil">--</div>
+  </div>
 
-  if(chart.data.labels.length > 20){
-    chart.data.labels.shift();
-    chart.data.datasets[0].data.shift();
-  }
+  <div class="card">
+    <h3>☀️ Light</h3>
+    <div id="lux">-- lux</div>
+  </div>
 
-  chart.update();
+</section>
 
-  document.getElementById("time").innerHTML =
-    "Last Update : " +
-    new Date().toLocaleString();
-}
+<!-- Device Control -->
 
-async function loadData(){
+<section id="controls">
 
-  try{
+  <h2>⚙️ Device Control</h2>
 
-    const res = await fetch('/api/data');
+  <button id="pumpBtn">
+    💧 Pump
+  </button>
 
-    const data = await res.json();
+  <button id="lightBtn">
+    💡 Grow Light
+  </button>
 
-    updateDashboard(data);
+  <button id="fanBtn">
+    🌬️ Fan
+  </button>
 
-  }catch(err){
+</section>
 
-    console.log(err);
+<!-- Status -->
 
-  }
+<section id="status">
 
-}
+  <h2>📡 Device Status</h2>
 
-setInterval(loadData,2000);
-loadData();
+  <div id="pumpStatus">
+    Pump OFF
+  </div>
 
-</script>
+  <div id="lightStatus">
+    Light OFF
+  </div>
+
+  <div id="fanStatus">
+    Fan OFF
+  </div>
+
+</section>
+
+<!-- Charts -->
+
+<section id="charts">
+
+  <h2>📈 Temperature Chart</h2>
+  <canvas id="tempChart"></canvas>
+
+  <h2>📈 Humidity Chart</h2>
+  <canvas id="humChart"></canvas>
+
+  <h2>📈 Light Chart</h2>
+  <canvas id="luxChart"></canvas>
+
+</section>
+
+<!-- AI Analysis -->
+
+<section id="ai">
+
+  <h2>🤖 AI Analysis</h2>
+
+  <div id="analysis">
+    Waiting data...
+  </div>
+
+</section>
+
+<!-- Last Update -->
+
+<footer>
+
+  <div id="lastUpdate">
+    Last Update : --
+  </div>
+
+</footer>
+
+</body>
+</html>
