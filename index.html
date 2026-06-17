@@ -7,37 +7,44 @@
 <style>
 body {
   font-family: Arial;
-  background: #0f172a;
+  background: linear-gradient(135deg,#0f172a,#1e293b);
   color: white;
   text-align: center;
 }
 
+h1 {
+  margin-top: 20px;
+}
+
 .card {
-  background: #1e293b;
+  background: #111827;
   padding: 20px;
   margin: 10px;
-  border-radius: 12px;
+  border-radius: 15px;
   display: inline-block;
 }
 
 button {
   padding: 12px 18px;
-  margin: 5px;
+  margin: 6px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
+  font-weight: bold;
   cursor: pointer;
 }
 
-.on { background: #22c55e; color: white; }
-.off { background: #ef4444; color: white; }
+.on { background:#22c55e; color:white; }
+.off { background:#ef4444; color:white; }
 </style>
 </head>
 
 <body>
 
-<h1>🌱 Smart Farm</h1>
+<h1>🌱 Smart Farm USB Control</h1>
 
-<div class="card">Control Panel</div>
+<div class="card">
+  Control Panel
+</div>
 
 <br><br>
 
@@ -54,11 +61,13 @@ button {
 
 <script>
 async function send(cmd){
+
   await fetch("http://localhost:5000/control", {
     method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({cmd})
   });
+
 }
 </script>
 
