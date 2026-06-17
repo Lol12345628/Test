@@ -117,13 +117,13 @@ function updateUI(){
   const lightBtn = document.getElementById("lightBtn");
   const fanBtn = document.getElementById("fanBtn");
 
-  pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
-  lightBtn.innerText = state.light ? "Light ON" : "Light OFF";
-  fanBtn.innerText = state.fan ? "Fan ON" : "Fan OFF";
+  pumpBtn.innerText = state.pump ? "Pump OFF" : "Pump ON";
+  lightBtn.innerText = state.light ? "Light OFF" : "Light ON";
+  fanBtn.innerText = state.fan ? "Fan OFF" : "Fan ON";
 
-  pumpBtn.className = state.pump ? "on" : "off";
-  lightBtn.className = state.light ? "on" : "off";
-  fanBtn.className = state.fan ? "on" : "off";
+  pumpBtn.className = state.pump ? "off" : "on";
+  lightBtn.className = state.light ? "off" : "on";
+  fanBtn.className = state.fan ? "off" : "on";
 }
 
 // ===== AI =====
