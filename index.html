@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm Stable</title>
+<title>Smart Farm FIX AI</title>
 
 <style>
 
@@ -27,10 +27,7 @@ body{
   border-radius:16px;
 }
 
-.value{
-  font-size:26px;
-  font-weight:bold;
-}
+.value{ font-size:26px; font-weight:bold; }
 
 .temp{ color:#f87171; }
 .hum{ color:#38bdf8; }
@@ -57,8 +54,6 @@ button{
   padding:10px;
   background:#1e293b;
   border-radius:10px;
-  min-width:300px;
-  display:inline-block;
 }
 
 </style>
@@ -66,7 +61,7 @@ button{
 
 <body>
 
-<h2>🤖 Smart Farm Stable UI</h2>
+<h2>🤖 Smart Farm FIX AI (NO BUG)</h2>
 
 <button class="connect" onclick="connectUSB()">🔌 Connect</button>
 <button class="auto" onclick="toggleAuto()">AUTO: OFF</button>
@@ -77,7 +72,6 @@ button{
 <button id="lightBtn" class="off" onclick="manual('light')">Light OFF</button>
 <button id="fanBtn" class="off" onclick="manual('fan')">Fan OFF</button>
 
-<!-- SENSOR -->
 <div class="grid">
 
   <div class="card">🌡 <div id="temp" class="value temp">-</div></div>
@@ -93,6 +87,13 @@ button{
 
 let port, writer;
 let autoMode = false;
+
+// ===== STATE MEMORY (FIX BUG) =====
+let aiState = {
+  pump:false,
+  light:false,
+  fan:false
+};
 
 // ===== CONNECT =====
 async function connectUSB(){
@@ -110,17 +111,16 @@ async function send(cmd){
   await writer.write(new TextEncoder().encode(cmd + "\n"));
 }
 
-// ===== AUTO SWITCH =====
+// ===== AUTO TOGGLE =====
 function toggleAuto(){
   autoMode = !autoMode;
-
   document.querySelector(".auto").innerText =
     autoMode ? "AUTO: ON" : "AUTO: OFF";
 
   send(autoMode ? "auto_on" : "auto_off");
 }
 
-// ===== MANUAL CONTROL =====
+// ===== MANUAL =====
 function manual(dev){
 
   if(autoMode){
@@ -128,53 +128,69 @@ function manual(dev){
     return;
   }
 
-  if(dev === "pump") send("pump_on");
-  if(dev === "light") send("light_on");
-  if(dev === "fan") send("fan_on");
+  send(dev + "_on");
 
-  updateButtons(dev);
+  if(dev === "pump") pumpBtn.className = "on";
+  if(dev === "light") lightBtn.className = "on";
+  if(dev === "fan") fanBtn.className = "on";
 }
 
-// ===== UI UPDATE =====
-function updateButtons(dev){
-
-  if(dev === "pump"){
-    pumpBtn.innerText = "Pump ON";
-    pumpBtn.className = "on";
-  }
-
-  if(dev === "light"){
-    lightBtn.innerText = "Light ON";
-    lightBtn.className = "on";
-  }
-
-  if(dev === "fan"){
-    fanBtn.innerText = "Fan ON";
-    fanBtn.className = "on";
-  }
-}
-
-// ===== AI DISPLAY (NO CONTROL CONFLICT) =====
+// ===== AI (FIXED NO SPAM) =====
 function AI(temp, hum, soil, lux){
 
   if(!autoMode) return;
 
+  let newState = {
+    pump:false,
+    light:false,
+    fan:false
+  };
+
   let msg = "AI: Normal 🌿";
 
-  if(soil < 30) msg = "AI: Soil Dry → Pump ON 💧";
-  else if(temp > 35) msg = "AI: Hot → Fan ON 🌬";
-  else if(lux < 100) msg = "AI: Dark → Light ON 💡";
+  // 🌱 soil
+  if(soil < 30){
+    newState.pump = true;
+    msg = "AI: Dry → Pump ON 💧";
+  }
+
+  // 🌡 temp
+  if(temp > 35){
+    newState.fan = true;
+    msg = "AI: Hot → Fan ON 🌬";
+  }
+
+  // 💡 light
+  if(lux < 100){
+    newState.light = true;
+    msg = "AI: Dark → Light ON 💡";
+  }
 
   document.getElementById("aiText").innerText = msg;
+
+  // ===== 🔥 SEND ONLY WHEN CHANGE =====
+  if(newState.pump !== aiState.pump){
+    send(newState.pump ? "pump_on" : "pump_off");
+    aiState.pump = newState.pump;
+  }
+
+  if(newState.light !== aiState.light){
+    send(newState.light ? "light_on" : "light_off");
+    aiState.light = newState.light;
+  }
+
+  if(newState.fan !== aiState.fan){
+    send(newState.fan ? "fan_on" : "fan_off");
+    aiState.fan = newState.fan;
+  }
 }
 
-// ===== READ SENSOR (FIXED BUFFER) =====
+// ===== READ SENSOR =====
 async function readLoop(){
 
   const reader = port.readable.getReader();
   let buffer = "";
 
-  // ✅ FIX: cache DOM once (ลดบัค + เร็วขึ้น)
   const tempEl = document.getElementById("temp");
   const humEl  = document.getElementById("hum");
   const soilEl = document.getElementById("soil");
