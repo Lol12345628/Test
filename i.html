@@ -1,226 +1,71 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🌱 Smart Farm Dashboard</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
-}
-
-body{
-background:#0f172a;
-color:white;
-padding:20px;
-}
-
-h1{
-text-align:center;
-margin-bottom:20px;
-color:#22c55e;
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-gap:15px;
-}
-
-.card{
-background:#1e293b;
-padding:20px;
-border-radius:20px;
-text-align:center;
-box-shadow:0 0 15px rgba(0,255,100,.2);
-}
-
-.value{
-font-size:2rem;
-font-weight:bold;
-color:#22c55e;
-}
-
-.status{
-display:flex;
-justify-content:center;
-flex-wrap:wrap;
-gap:10px;
-margin-top:20px;
-}
-
-.badge{
-padding:10px 20px;
-border-radius:20px;
-font-weight:bold;
-}
-
-.on{
-background:#22c55e;
-}
-
-.off{
-background:#ef4444;
-}
-
-canvas{
-background:white;
-border-radius:20px;
-padding:10px;
-margin-top:20px;
-}
-
-.time{
-text-align:center;
-margin-top:15px;
-opacity:.8;
-}
-</style>
-
-</head>
-<body>
-
-<h1>🌱 Smart Farm Dashboard</h1>
-
-<div class="grid">
-
-<div class="card">
-<h3>🌡️ Temperature</h3>
-<div id="temp" class="value">--</div>
-</div>
-
-<div class="card">
-<h3>💧 Humidity</h3>
-<div id="hum" class="value">--</div>
-</div>
-
-<div class="card">
-<h3>🌱 Soil</h3>
-<div id="soil" class="value">--</div>
-</div>
-
-<div class="card">
-<h3>☀️ Light</h3>
-<div id="lux" class="value">--</div>
-</div>
-
-</div>
-
-<div class="status">
-
-<div id="pump" class="badge off">
-Pump OFF
-</div>
-
-<div id="light" class="badge off">
-Light OFF
-</div>
-
-<div id="fan" class="badge off">
-Fan OFF
-</div>
-
-</div>
-
-<canvas id="tempChart"></canvas>
-
-<div id="time" class="time">
-Waiting Data...
-</div>
-
 <script>
 
 const ctx = document.getElementById('tempChart');
 
 const chart = new Chart(ctx,{
-type:'line',
-data:{
-labels:[],
-datasets:[{
-label:'Temperature °C',
-data:[]
-}]
-},
-options:{
-responsive:true
-}
+  type:'line',
+  data:{
+    labels:[],
+    datasets:[{
+      label:'Temperature °C',
+      data:[]
+    }]
+  }
 });
 
 function updateDashboard(data){
 
-document.getElementById("temp").innerHTML=data.temp+"°C";
-document.getElementById("hum").innerHTML=data.hum+"%";
-document.getElementById("soil").innerHTML=data.soil;
-document.getElementById("lux").innerHTML=data.lux;
+  document.getElementById("temp").innerHTML=data.temp+"°C";
+  document.getElementById("hum").innerHTML=data.hum+"%";
+  document.getElementById("soil").innerHTML=data.soil;
+  document.getElementById("lux").innerHTML=data.lux;
 
-document.getElementById("pump").className=
-data.pump ? "badge on":"badge off";
+  document.getElementById("pump").className =
+    data.pump ? "badge on":"badge off";
 
-document.getElementById("pump").innerHTML=
-data.pump ? "Pump ON":"Pump OFF";
+  document.getElementById("light").className =
+    data.light ? "badge on":"badge off";
 
-document.getElementById("light").className=
-data.light ? "badge on":"badge off";
+  document.getElementById("fan").className =
+    data.fan ? "badge on":"badge off";
 
-document.getElementById("light").innerHTML=
-data.light ? "Light ON":"Light OFF";
+  chart.data.labels.push(
+    new Date().toLocaleTimeString()
+  );
 
-document.getElementById("fan").className=
-data.fan ? "badge on":"badge off";
+  chart.data.datasets[0].data.push(data.temp);
 
-document.getElementById("fan").innerHTML=
-data.fan ? "Fan ON":"Fan OFF";
+  if(chart.data.labels.length > 20){
+    chart.data.labels.shift();
+    chart.data.datasets[0].data.shift();
+  }
 
-chart.data.labels.push(
-new Date().toLocaleTimeString()
-);
+  chart.update();
 
-chart.data.datasets[0].data.push(data.temp);
-
-if(chart.data.labels.length > 20){
-chart.data.labels.shift();
-chart.data.datasets[0].data.shift();
+  document.getElementById("time").innerHTML =
+    "Last Update : " +
+    new Date().toLocaleString();
 }
 
-chart.update();
+async function loadData(){
 
-document.getElementById("time").innerHTML =
-"Last Update : " +
-new Date().toLocaleString();
+  try{
+
+    const res = await fetch('/api/data');
+
+    const data = await res.json();
+
+    updateDashboard(data);
+
+  }catch(err){
+
+    console.log(err);
+
+  }
+
 }
 
-/* ตัวอย่างข้อมูลจำลอง */
-setInterval(()=>{
-
-const data = {
-
-temp:(25+Math.random()*10).toFixed(1),
-
-hum:(50+Math.random()*30).toFixed(1),
-
-soil:Math.floor(Math.random()*3000),
-
-lux:Math.floor(Math.random()*1500),
-
-pump:Math.random()>0.5,
-
-light:Math.random()>0.5,
-
-fan:Math.random()>0.5
-
-};
-
-updateDashboard(data);
-
-},2000);
+setInterval(loadData,2000);
+loadData();
 
 </script>
-
-</body>
-</html>
