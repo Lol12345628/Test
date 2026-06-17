@@ -2,145 +2,71 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm FULL CONTROL</title>
+<title>ESP32 Live Data</title>
 
 <style>
-body {
-  font-family: Arial;
+body{
+  font-family:Arial;
   background:#0f172a;
   color:white;
   text-align:center;
 }
 
-.box {
-  background:#111827;
+.box{
   display:inline-block;
+  background:#111827;
   padding:15px;
   margin:8px;
   border-radius:12px;
   width:160px;
 }
 
-.value { font-size:20px; color:#38bdf8; }
+.value{
+  font-size:22px;
+  color:#38bdf8;
+}
 
-button {
+.connect{
   padding:12px;
-  margin:5px;
+  background:#3b82f6;
+  color:white;
   border:none;
   border-radius:10px;
   font-weight:bold;
-  cursor:pointer;
-  width:160px;
-}
-
-.on { background:#22c55e; color:white; }
-.off { background:#ef4444; color:white; }
-
-.master { background:#f97316; color:white; }
-.connect { background:#3b82f6; color:white; }
-
-.ai {
-  margin-top:15px;
-  color:#93c5fd;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🌱 Smart Farm FULL CONTROL</h2>
+<h2>🌱 ESP32 LIVE SENSOR</h2>
 
-<!-- CONNECT -->
 <button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
 
 <br><br>
 
-<!-- SENSOR -->
 <div class="box">🌡 Temp<br><div id="temp" class="value">-</div></div>
 <div class="box">💧 Hum<br><div id="hum" class="value">-</div></div>
 <div class="box">🌱 Soil<br><div id="soil" class="value">-</div></div>
 <div class="box">💡 Lux<br><div id="lux" class="value">-</div></div>
 
-<br>
-
-<!-- CONTROL -->
-<button id="pumpBtn" class="off" onclick="toggle('pump')">Pump OFF</button>
-<button id="lightBtn" class="off" onclick="toggle('light')">Light OFF</button>
-<button id="fanBtn" class="off" onclick="toggle('fan')">Fan OFF</button>
-
-<br>
-
-<!-- AUTO + MASTER OFF -->
-<button class="on" onclick="send('auto_on')">🤖 AUTO ON</button>
-<button class="off" onclick="send('auto_off')">AUTO OFF</button>
-
-<br>
-
-<button class="master" onclick="masterOff()">⛔ MASTER OFF</button>
-
-<div class="ai" id="aiText">AI: waiting...</div>
+<div id="ai" style="margin-top:20px;color:#93c5fd;">
+AI: waiting data...
+</div>
 
 <script>
 
-let port, writer;
+let port;
 
-let state = {
-  pump:false,
-  light:false,
-  fan:false
-};
-
-// ===== CONNECT =====
+// 🔌 connect USB
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({ baudRate:115200 });
-  writer = port.writable.getWriter();
+
   readLoop();
 }
 
-// ===== SEND =====
-async function send(cmd){
-  if(!writer) return;
-  await writer.write(new TextEncoder().encode(cmd+"\n"));
-}
-
-// ===== TOGGLE =====
-async function toggle(d){
-  state[d] = !state[d];
-  let cmd = d + (state[d] ? "_on" : "_off");
-  await send(cmd);
-  updateUI();
-}
-
-// ===== MASTER OFF =====
-async function masterOff(){
-
-  state.pump = false;
-  state.light = false;
-  state.fan = false;
-
-  await send("pump_off");
-  await send("light_off");
-  await send("fan_off");
-
-  updateUI();
-
-  document.getElementById("aiText").innerText = "AI: SYSTEM OFF ⛔";
-}
-
-// ===== UI =====
-function updateUI(){
-
-  pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
-  lightBtn.innerText = state.light ? "Light ON" : "Light OFF";
-  fanBtn.innerText = state.fan ? "Fan ON" : "Fan OFF";
-
-  pumpBtn.className = state.pump ? "on" : "off";
-  lightBtn.className = state.light ? "on" : "off";
-  fanBtn.className = state.fan ? "on" : "off";
-}
-
-// ===== SENSOR READ =====
+// 📡 อ่านข้อมูลจาก ESP32
 async function readLoop(){
 
   const reader = port.readable.getReader();
@@ -154,33 +80,43 @@ async function readLoop(){
     let lines = buffer.split("\n");
     buffer = lines.pop();
 
-    for(let l of lines){
+    for(let line of lines){
 
-      try {
-        let d = JSON.parse(l);
+      let data = line.trim().split(",");
 
-        temp.innerText = d.temp.toFixed(1);
-        hum.innerText  = d.hum.toFixed(1);
-        soil.innerText = d.soil;
-        lux.innerText  = d.lux.toFixed(0);
+      if(data.length < 4) continue;
 
-        ai(d);
+      let temp = parseFloat(data[0]);
+      let hum  = parseFloat(data[1]);
+      let soil = parseInt(data[2]);
+      let lux  = parseFloat(data[3]);
 
-      } catch(e){}
+      document.getElementById("temp").innerText = temp.toFixed(1);
+      document.getElementById("hum").innerText  = hum.toFixed(1);
+      document.getElementById("soil").innerText = soil;
+      document.getElementById("lux").innerText  = lux.toFixed(0);
+
+      ai(temp, hum, soil, lux);
     }
   }
 }
 
-// ===== AI =====
-function ai(d){
+// 🤖 AI วิเคราะห์
+function ai(temp, hum, soil, lux){
 
   let msg = "AI: Normal 🌿";
 
-  if(d.soil < 35) msg = "AI: Soil dry → Pump ON 💧";
-  else if(d.temp > 35) msg = "AI: Hot → Fan ON 🌬";
-  else if(d.lux < 100) msg = "AI: Dark → Light ON 💡";
+  if(soil < 35){
+    msg = "AI: Soil dry → need water 💧";
+  }
+  else if(temp > 35){
+    msg = "AI: Hot → fan ON 🌬";
+  }
+  else if(lux < 100){
+    msg = "AI: Dark → light ON 💡";
+  }
 
-  document.getElementById("aiText").innerText = msg;
+  document.getElementById("ai").innerText = msg;
 }
 
 </script>
