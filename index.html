@@ -2,137 +2,149 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm AI Pro</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Smart Farm AI USB FIX</title>
 
 <style>
 body {
   font-family: Arial;
-  background:#0f172a;
-  color:white;
-  text-align:center;
+  background: linear-gradient(135deg,#0f172a,#1e293b);
+  color: white;
+  text-align: center;
 }
+
+h1 { margin-top: 20px; }
 
 button {
-  padding:12px;
-  margin:5px;
-  border:none;
-  border-radius:10px;
-  font-weight:bold;
+  padding: 14px;
+  margin: 6px;
+  border: none;
+  border-radius: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 160px;
 }
 
-.on { background:#22c55e; }
-.off { background:#ef4444; }
-.connect { background:#3b82f6; }
+.connect { background:#3b82f6; color:white; }
+.on { background:#22c55e; color:white; }
+.off { background:#ef4444; color:white; }
 
-canvas {
-  background:white;
-  border-radius:10px;
+.ai {
   margin-top:20px;
+  color:#93c5fd;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🌱 Smart Farm AI Dashboard</h2>
+<h1>🌱 Smart Farm AI USB</h1>
 
 <button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
-<button onclick="send('auto_on')">🤖 AUTO MODE</button>
-<button class="off" onclick="send('pump_off')">Pump OFF</button>
 
-<div id="ai">AI: waiting data...</div>
+<br><br>
 
-<canvas id="chart" width="400" height="200"></canvas>
+<button id="pumpBtn" class="off" onclick="toggle('pump')">Pump OFF</button>
+<button id="lightBtn" class="off" onclick="toggle('light')">Light OFF</button>
+<button id="fanBtn" class="off" onclick="toggle('fan')">Fan OFF</button>
+
+<div class="ai" id="aiText">AI: waiting connection...</div>
 
 <script>
 
 let port, writer;
-let tempData = [];
-let soilData = [];
-let labels = [];
 
-// ===== CHART =====
-const ctx = document.getElementById('chart');
-const chart = new Chart(ctx, {
-  type:'line',
-  data:{
-    labels:labels,
-    datasets:[
-      { label:'Temp', data:tempData, borderColor:'red' },
-      { label:'Soil', data:soilData, borderColor:'blue' }
-    ]
-  }
-});
+let state = {
+  pump:false,
+  light:false,
+  fan:false
+};
 
-// ===== CONNECT =====
+// ===== CONNECT USB =====
 async function connectUSB(){
-  port = await navigator.serial.requestPort();
-  await port.open({ baudRate:115200 });
-  writer = port.writable.getWriter();
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
 
-  readLoop();
-}
+    writer = port.writable.getWriter();
 
-// ===== SEND =====
-async function send(cmd){
-  if(!writer) return;
-  await writer.write(new TextEncoder().encode(cmd+"\n"));
-}
+    document.getElementById("aiText").innerText = "AI: USB Connected ✅";
 
-// ===== READ ESP32 =====
-async function readLoop(){
-  const reader = port.readable.getReader();
-  let buffer = "";
-
-  while(true){
-    const { value } = await reader.read();
-    buffer += new TextDecoder().decode(value);
-
-    let lines = buffer.split("\n");
-    buffer = lines.pop();
-
-    for(let line of lines){
-
-      let [t,s] = line.trim().split(",");
-
-      if(!t || !s) continue;
-
-      tempData.push(parseInt(t));
-      soilData.push(parseInt(s));
-
-      labels.push("");
-
-      if(tempData.length > 20){
-        tempData.shift();
-        soilData.shift();
-        labels.shift();
-      }
-
-      chart.update();
-
-      ai(parseInt(t), parseInt(s));
-    }
+  } catch(e){
+    alert("Connect failed: " + e);
   }
+}
+
+// ===== SEND SAFE =====
+async function send(cmd){
+  if(!writer){
+    alert("ยังไม่ได้ Connect USB");
+    return false;
+  }
+
+  try {
+    await writer.write(new TextEncoder().encode(cmd + "\n"));
+    return true;
+  } catch(e){
+    alert("USB Error");
+    return false;
+  }
+}
+
+// ===== TOGGLE FIX =====
+async function toggle(device){
+
+  if(!writer){
+    alert("Connect USB ก่อน");
+    return;
+  }
+
+  state[device] = !state[device];
+
+  let cmd = device + (state[device] ? "_on" : "_off");
+
+  let ok = await send(cmd);
+
+  if(ok){
+    updateUI();
+    ai();
+  }
+}
+
+// ===== UI FIX (ชัวร์ 100%) =====
+function updateUI(){
+
+  const pumpBtn = document.getElementById("pumpBtn");
+  const lightBtn = document.getElementById("lightBtn");
+  const fanBtn = document.getElementById("fanBtn");
+
+  pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
+  lightBtn.innerText = state.light ? "Light ON" : "Light OFF";
+  fanBtn.innerText = state.fan ? "Fan ON" : "Fan OFF";
+
+  pumpBtn.className = state.pump ? "on" : "off";
+  lightBtn.className = state.light ? "on" : "off";
+  fanBtn.className = state.fan ? "on" : "off";
 }
 
 // ===== AI =====
-function ai(temp, soil){
+function ai(){
 
   let msg = "AI: Normal 🌿";
 
-  if(soil < 30){
-    msg = "AI: Soil dry → Pump ON 💧";
-    send("pump_on");
+  if(state.pump && state.fan){
+    msg = "AI: High load 💧🌬";
+  }
+  else if(state.pump){
+    msg = "AI: Watering 💧";
+  }
+  else if(state.fan){
+    msg = "AI: Cooling 🌬";
   }
 
-  if(temp > 35){
-    msg = "AI: Hot → Cooling 🌬";
-  }
-
-  document.getElementById("ai").innerText = msg;
+  document.getElementById("aiText").innerText = msg;
 }
+
+updateUI();
 
 </script>
 
