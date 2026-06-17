@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm AI Dashboard</title>
+<title>Smart Farm AI + Manual</title>
 
 <style>
 
@@ -13,7 +13,6 @@ body{
   text-align:center;
 }
 
-/* ===== SENSOR GRID ===== */
 .grid{
   display:grid;
   grid-template-columns:repeat(2,160px);
@@ -26,12 +25,6 @@ body{
   background:#111827;
   padding:18px;
   border-radius:16px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.4);
-}
-
-.title{
-  font-size:14px;
-  color:#94a3b8;
 }
 
 .value{
@@ -44,7 +37,6 @@ body{
 .soil{ color:#22c55e; }
 .lux{ color:#facc15; }
 
-/* ===== BUTTON ===== */
 button{
   padding:12px;
   margin:5px;
@@ -58,11 +50,11 @@ button{
 .connect{ background:#3b82f6; color:white; }
 .on{ background:#22c55e; color:white; }
 .off{ background:#ef4444; color:white; }
+.auto{ background:#a855f7; color:white; }
 
-/* ===== AI BOX ===== */
 .aiBox{
-  margin-top:20px;
-  padding:12px;
+  margin-top:15px;
+  padding:10px;
   background:#1e293b;
   border-radius:10px;
   display:inline-block;
@@ -74,58 +66,36 @@ button{
 
 <body>
 
-<h2>🤖 Smart Farm AI Dashboard</h2>
+<h2>🤖 Smart Farm AI + Manual</h2>
 
-<button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
+<button class="connect" onclick="connectUSB()">🔌 Connect</button>
+<button class="auto" onclick="toggleAuto()">AUTO: OFF</button>
+
+<br>
+
+<button id="pumpBtn" class="off" onclick="manual('pump')">Pump OFF</button>
+<button id="lightBtn" class="off" onclick="manual('light')">Light OFF</button>
+<button id="fanBtn" class="off" onclick="manual('fan')">Fan OFF</button>
 
 <!-- SENSOR -->
 <div class="grid">
 
-  <div class="card">
-    <div class="title">🌡 Temperature</div>
-    <div id="temp" class="value temp">-</div>
-  </div>
-
-  <div class="card">
-    <div class="title">💧 Humidity</div>
-    <div id="hum" class="value hum">-</div>
-  </div>
-
-  <div class="card">
-    <div class="title">🌱 Soil</div>
-    <div id="soil" class="value soil">-</div>
-  </div>
-
-  <div class="card">
-    <div class="title">💡 Light</div>
-    <div id="lux" class="value lux">-</div>
-  </div>
+  <div class="card">🌡 <div id="temp" class="value temp">-</div></div>
+  <div class="card">💧 <div id="hum" class="value hum">-</div></div>
+  <div class="card">🌱 <div id="soil" class="value soil">-</div></div>
+  <div class="card">💡 <div id="lux" class="value lux">-</div></div>
 
 </div>
 
-<!-- CONTROL -->
-<div style="margin-top:20px;">
-
-<button id="pumpBtn" class="off" onclick="toggle('pump')">Pump OFF</button>
-<button id="lightBtn" class="off" onclick="toggle('light')">Light OFF</button>
-<button id="fanBtn" class="off" onclick="toggle('fan')">Fan OFF</button>
-
-</div>
-
-<!-- AI STATUS -->
-<div class="aiBox" id="aiText">AI: waiting data...</div>
+<div class="aiBox" id="aiText">AI: standby</div>
 
 <script>
 
 let port, writer;
 
-let state = {
-  pump:false,
-  light:false,
-  fan:false
-};
+let autoMode = false;
 
-// ===== CONNECT =====
+// ================= CONNECT =================
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({ baudRate:115200 });
@@ -134,64 +104,78 @@ async function connectUSB(){
   readLoop();
 }
 
-// ===== SEND =====
+// ================= SEND =================
 async function send(cmd){
   if(!writer) return;
   await writer.write(new TextEncoder().encode(cmd + "\n"));
 }
 
-// ===== TOGGLE MANUAL =====
-async function toggle(dev){
+// ================= TOGGLE AUTO =================
+function toggleAuto(){
+  autoMode = !autoMode;
+  document.querySelector(".auto").innerText = autoMode ? "AUTO: ON" : "AUTO: OFF";
 
-  state[dev] = !state[dev];
-
-  let cmd = dev + (state[dev] ? "_on" : "_off");
-  await send(cmd);
-
-  updateUI();
+  send(autoMode ? "auto_on" : "auto_off");
 }
 
-// ===== UI UPDATE =====
-function updateUI(){
+// ================= MANUAL CONTROL =================
+function manual(dev){
 
-  pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
-  lightBtn.innerText = state.light ? "Light ON" : "Light OFF";
-  fanBtn.innerText = state.fan ? "Fan ON" : "Fan OFF";
+  if(autoMode){
+    alert("ปิด AUTO ก่อน");
+    return;
+  }
 
-  pumpBtn.className = state.pump ? "on" : "off";
-  lightBtn.className = state.light ? "on" : "off";
-  fanBtn.className = state.fan ? "on" : "off";
+  if(dev === "pump") send("pump_on");
+  if(dev === "light") send("light_on");
+  if(dev === "fan") send("fan_on");
+
+  updateButtons(dev);
 }
 
-// ===== AI LOGIC =====
+// ================= BUTTON UI =================
+function updateButtons(dev){
+
+  if(dev === "pump"){
+    pumpBtn.innerText = "Pump ON";
+    pumpBtn.className = "on";
+  }
+
+  if(dev === "light"){
+    lightBtn.innerText = "Light ON";
+    lightBtn.className = "on";
+  }
+
+  if(dev === "fan"){
+    fanBtn.innerText = "Fan ON";
+    fanBtn.className = "on";
+  }
+}
+
+// ================= AI RULE =================
 function AI(temp, hum, soil, lux){
 
-  let msg = "AI: Normal 🌿";
+  if(!autoMode) return;
 
-  // 🌱 soil สำคัญสุด
+  let msg = "AI: Normal";
+
   if(soil < 30){
-    msg = "AI: Soil DRY → Pump ON 💧";
+    msg = "AI: Dry soil → Pump ON 💧";
+    send("pump_on");
   }
-
-  // 🌡 ร้อน
   else if(temp > 35){
     msg = "AI: Hot → Fan ON 🌬";
+    send("fan_on");
   }
-
-  // 💡 แสงน้อย
   else if(lux < 100){
     msg = "AI: Dark → Light ON 💡";
-  }
-
-  // 💧 ชื้นเกิน
-  else if(hum > 85){
-    msg = "AI: Too humid → Fan ON 🌬";
+    send("light_on");
   }
 
   document.getElementById("aiText").innerText = msg;
 }
 
-// ===== READ SENSOR =====
+// ================= READ =================
 async function readLoop(){
 
   const reader = port.readable.getReader();
@@ -215,10 +199,10 @@ async function readLoop(){
       let soil = +d[2];
       let lux  = +d[3];
 
-      document.getElementById("temp").innerText = temp.toFixed(1);
-      document.getElementById("hum").innerText  = hum.toFixed(1);
-      document.getElementById("soil").innerText = soil;
-      document.getElementById("lux").innerText  = lux.toFixed(0);
+      tempEl.innerText = temp.toFixed(1);
+      humEl.innerText  = hum.toFixed(1);
+      soilEl.innerText = soil;
+      luxEl.innerText  = lux.toFixed(0);
 
       AI(temp, hum, soil, lux);
     }
