@@ -2,149 +2,121 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm AI USB FIX</title>
+<title>Smart Farm Dashboard</title>
 
 <style>
 body {
   font-family: Arial;
-  background: linear-gradient(135deg,#0f172a,#1e293b);
+  background: #0f172a;
   color: white;
   text-align: center;
 }
 
-h1 { margin-top: 20px; }
+.box {
+  display:inline-block;
+  background:#111827;
+  padding:15px;
+  margin:8px;
+  border-radius:12px;
+  width:150px;
+}
+
+.value {
+  font-size:22px;
+  font-weight:bold;
+  color:#38bdf8;
+}
 
 button {
-  padding: 14px;
-  margin: 6px;
-  border: none;
-  border-radius: 12px;
-  font-weight: bold;
-  cursor: pointer;
-  width: 160px;
+  padding:12px;
+  margin:5px;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
 }
 
 .connect { background:#3b82f6; color:white; }
-.on { background:#22c55e; color:white; }
-.off { background:#ef4444; color:white; }
-
-.ai {
-  margin-top:20px;
-  color:#93c5fd;
-}
 </style>
 </head>
 
 <body>
 
-<h1>🌱 Smart Farm AI USB</h1>
+<h2>🌱 Smart Farm Live Sensor</h2>
 
 <button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
 
 <br><br>
 
-<button id="pumpBtn" class="off" onclick="toggle('pump')">Pump OFF</button>
-<button id="lightBtn" class="off" onclick="toggle('light')">Light OFF</button>
-<button id="fanBtn" class="off" onclick="toggle('fan')">Fan OFF</button>
+<div class="box">🌡 Temp<br><div id="temp" class="value">-</div></div>
+<div class="box">💧 Hum<br><div id="hum" class="value">-</div></div>
+<div class="box">🌱 Soil<br><div id="soil" class="value">-</div></div>
+<div class="box">💡 Lux<br><div id="lux" class="value">-</div></div>
 
-<div class="ai" id="aiText">AI: waiting connection...</div>
+<div id="ai" style="margin-top:20px;color:#93c5fd;">
+AI: waiting data...
+</div>
 
 <script>
 
 let port, writer;
 
-let state = {
-  pump:false,
-  light:false,
-  fan:false
-};
-
-// ===== CONNECT USB =====
+// ===== CONNECT =====
 async function connectUSB(){
-  try {
-    port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 115200 });
+  port = await navigator.serial.requestPort();
+  await port.open({ baudRate:115200 });
+  writer = port.writable.getWriter();
 
-    writer = port.writable.getWriter();
-
-    document.getElementById("aiText").innerText = "AI: USB Connected ✅";
-
-  } catch(e){
-    alert("Connect failed: " + e);
-  }
+  readLoop();
 }
 
-// ===== SEND SAFE =====
-async function send(cmd){
-  if(!writer){
-    alert("ยังไม่ได้ Connect USB");
-    return false;
+// ===== READ SENSOR =====
+async function readLoop(){
+
+  const reader = port.readable.getReader();
+  let buffer = "";
+
+  while(true){
+
+    const { value } = await reader.read();
+    buffer += new TextDecoder().decode(value);
+
+    let lines = buffer.split("\n");
+    buffer = lines.pop();
+
+    for(let line of lines){
+
+      try {
+        let data = JSON.parse(line);
+
+        document.getElementById("temp").innerText = data.temp.toFixed(1);
+        document.getElementById("hum").innerText  = data.hum.toFixed(1);
+        document.getElementById("soil").innerText = data.soil;
+        document.getElementById("lux").innerText  = data.lux.toFixed(0);
+
+        ai(data);
+
+      } catch(e){}
+    }
   }
-
-  try {
-    await writer.write(new TextEncoder().encode(cmd + "\n"));
-    return true;
-  } catch(e){
-    alert("USB Error");
-    return false;
-  }
-}
-
-// ===== TOGGLE FIX =====
-async function toggle(device){
-
-  if(!writer){
-    alert("Connect USB ก่อน");
-    return;
-  }
-
-  state[device] = !state[device];
-
-  let cmd = device + (state[device] ? "_on" : "_off");
-
-  let ok = await send(cmd);
-
-  if(ok){
-    updateUI();
-    ai();
-  }
-}
-
-// ===== UI FIX (ชัวร์ 100%) =====
-function updateUI(){
-
-  const pumpBtn = document.getElementById("pumpBtn");
-  const lightBtn = document.getElementById("lightBtn");
-  const fanBtn = document.getElementById("fanBtn");
-
-  pumpBtn.innerText = state.pump ? "Pump OFF" : "Pump ON";
-  lightBtn.innerText = state.light ? "Light OFF" : "Light ON";
-  fanBtn.innerText = state.fan ? "Fan OFF" : "Fan ON";
-
-  pumpBtn.className = state.pump ? "off" : "on";
-  lightBtn.className = state.light ? "off" : "on";
-  fanBtn.className = state.fan ? "off" : "on";
 }
 
 // ===== AI =====
-function ai(){
+function ai(d){
 
   let msg = "AI: Normal 🌿";
 
-  if(state.pump && state.fan){
-    msg = "AI: High load 💧🌬";
+  if(d.soil < 35){
+    msg = "AI: Soil dry → Pump ON 💧";
   }
-  else if(state.pump){
-    msg = "AI: Watering 💧";
+  else if(d.temp > 35){
+    msg = "AI: Hot → Fan ON 🌬";
   }
-  else if(state.fan){
-    msg = "AI: Cooling 🌬";
+  else if(d.lux < 100){
+    msg = "AI: Dark → Light ON 💡";
   }
 
-  document.getElementById("aiText").innerText = msg;
+  document.getElementById("ai").innerText = msg;
 }
-
-updateUI();
 
 </script>
 
