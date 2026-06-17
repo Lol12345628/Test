@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>AI Smart Farm</title>
+<title>AI Farm PRO</title>
 
 <style>
 
@@ -16,7 +16,7 @@ body{
 button{
   padding:12px;
   margin:5px;
-  width:160px;
+  width:150px;
   border:none;
   border-radius:10px;
   cursor:pointer;
@@ -26,12 +26,23 @@ button{
 .off{background:#ef4444;color:white;}
 .connect{background:#3b82f6;color:white;}
 
-.box{
-  margin:10px;
-  padding:10px;
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,160px);
+  gap:10px;
+  justify-content:center;
+  margin-top:10px;
+}
+
+.card{
   background:#111827;
-  display:inline-block;
-  width:160px;
+  padding:12px;
+  border-radius:12px;
+}
+
+.value{
+  font-size:24px;
+  font-weight:bold;
 }
 
 .ai{
@@ -39,35 +50,42 @@ button{
   color:#38bdf8;
 }
 
+.learn{
+  font-size:12px;
+  opacity:0.7;
+}
+
 </style>
 </head>
 
 <body>
 
-<h2>🤖 AI Smart Farm CONTROL</h2>
+<h2>🤖 AI FARM PRO</h2>
 
 <button class="connect" onclick="connectUSB()">Connect</button>
 
 <br>
 
-<button id="pump" class="off" onclick="send('PUMP_ON')">Pump</button>
-<button id="light" class="off" onclick="send('LIGHT_ON')">Light</button>
-<button id="fan" class="off" onclick="send('FAN_ON')">Fan</button>
+<button onclick="send('PUMP_ON')">Pump</button>
+<button onclick="send('LIGHT_ON')">Light</button>
+<button onclick="send('FAN_ON')">Fan</button>
 
 <div class="ai" id="ai">AI: waiting...</div>
+<div class="learn" id="learn">learning...</div>
 
-<br>
+<div class="grid">
 
-<div class="box">🌡 <div id="t">-</div></div>
-<div class="box">💧 <div id="h">-</div></div>
-<div class="box">🌱 <div id="s">-</div></div>
-<div class="box">💡 <div id="l">-</div></div>
+<div class="card">🌡 <div id="t" class="value">-</div></div>
+<div class="card">💧 <div id="h" class="value">-</div></div>
+<div class="card">🌱 <div id="s" class="value">-</div></div>
+<div class="card">💡 <div id="l" class="value">-</div></div>
+
+</div>
 
 <script>
 
 let port, writer;
 
-// ===== CONNECT =====
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({baudRate:115200});
@@ -75,7 +93,6 @@ async function connectUSB(){
   readLoop();
 }
 
-// ===== SEND =====
 async function send(cmd){
   if(!writer) return;
   await writer.write(new TextEncoder().encode(cmd+"\n"));
@@ -86,11 +103,18 @@ function ai(t,s,l){
 
   let msg="AI: normal";
 
-  if(s < 30) msg="AI → pump ON (soil dry)";
-  else if(t > 35) msg="AI → fan ON (hot)";
-  else if(l < 100) msg="AI → light ON (dark)";
+  if(s < 30) msg="AI → pump ON (dry trend)";
+  else if(t > 35) msg="AI → fan ON (heat rising)";
+  else if(l < 100) msg="AI → light ON (dark trend)";
 
   document.getElementById("ai").innerText = msg;
+}
+
+// ===== LEARNING DISPLAY =====
+function learn(a){
+
+  document.getElementById("learn").innerText =
+  `soilAvg:${a.soil} tempAvg:${a.temp} luxAvg:${a.lux}`;
 }
 
 // ===== READ =====
@@ -110,16 +134,23 @@ async function readLoop(){
     for(let l of lines){
 
       let d = l.split(",");
-      if(d.length!=4) continue;
+      if(d.length < 7) continue;
 
-      let t=+d[0], h=+d[1], s=+d[2], lgt=+d[3];
+      let t=+d[0];
+      let h=+d[1];
+      let s=+d[2];
+      let lx=+d[3];
+      let sa=+d[4];
+      let ta=+d[5];
+      let la=+d[6];
 
-      document.getElementById("t").innerText=t;
-      document.getElementById("h").innerText=h;
+      document.getElementById("t").innerText=t.toFixed(1);
+      document.getElementById("h").innerText=h.toFixed(1);
       document.getElementById("s").innerText=s;
-      document.getElementById("l").innerText=lgt;
+      document.getElementById("l").innerText=lx;
 
-      ai(t,s,lgt);
+      ai(t,s,lx);
+      learn({soil:sa,temp:ta,lux:la});
     }
   }
 }
