@@ -2,46 +2,78 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>ESP32 Control FIX</title>
+<title>Smart Farm AI Control</title>
 
 <style>
 body {
   font-family: Arial;
-  background:#0f172a;
-  color:white;
-  text-align:center;
+  background: linear-gradient(135deg,#0f172a,#1e293b);
+  color: white;
+  text-align: center;
+}
+
+h1 { margin-top: 20px; }
+
+.card {
+  background:#111827;
+  padding:15px;
+  margin:10px;
+  border-radius:15px;
+  display:inline-block;
+  width:200px;
 }
 
 button {
-  padding:12px;
-  margin:5px;
+  padding:14px;
+  margin:6px;
   border:none;
-  border-radius:10px;
+  border-radius:12px;
   font-weight:bold;
+  cursor:pointer;
+  width:140px;
+  transition:0.2s;
 }
 
-.on { background:#22c55e; }
-.off { background:#ef4444; }
-.connect { background:#3b82f6; }
+.on {
+  background:#22c55e;
+  color:white;
+}
+
+.off {
+  background:#ef4444;
+  color:white;
+}
+
+.ai {
+  margin-top:20px;
+  color:#93c5fd;
+  font-size:14px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>🌱 ESP32 CONTROL FIX</h2>
+<h1>🌱 Smart Farm AI</h1>
 
-<button class="connect" onclick="connectUSB()">Connect USB</button>
+<div class="card">
+  🌡 Temp: <span id="temp">32</span><br>
+  🌱 Soil: <span id="soil">40</span><br>
+</div>
 
-<br><br>
+<br>
 
-<button class="on" onclick="toggle('pump')">Pump</button>
-<button class="on" onclick="toggle('light')">Light</button>
-<button class="on" onclick="toggle('fan')">Fan</button>
+<h3>Control</h3>
+
+<button id="pumpBtn" class="off" onclick="toggle('pump')">Pump OFF</button>
+<button id="lightBtn" class="off" onclick="toggle('light')">Light OFF</button>
+<button id="fanBtn" class="off" onclick="toggle('fan')">Fan OFF</button>
+
+<div class="ai" id="aiText">AI: analyzing...</div>
 
 <script>
 
-let port;
-let writer;
+let port, writer;
 
 let state = {
   pump:false,
@@ -49,25 +81,19 @@ let state = {
   fan:false
 };
 
-// ===== CONNECT =====
+// ===== CONNECT USB =====
 async function connectUSB(){
-  try {
-    port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 115200 });
-
-    writer = port.writable.getWriter();
-
-    alert("Connected ESP32");
-  } catch(e){
-    alert("Connect failed");
-  }
+  port = await navigator.serial.requestPort();
+  await port.open({ baudRate: 115200 });
+  writer = port.writable.getWriter();
 }
+connectUSB(); // auto connect popup
 
-// ===== TOGGLE FIX =====
+// ===== TOGGLE BUTTON =====
 async function toggle(device){
 
   if(!writer){
-    alert("ต้องกด Connect ก่อน");
+    alert("ยังไม่ได้ Connect USB");
     return;
   }
 
@@ -75,12 +101,47 @@ async function toggle(device){
 
   let cmd = device + (state[device] ? "_on" : "_off");
 
-  const data = new TextEncoder().encode(cmd + "\n");
+  await writer.write(new TextEncoder().encode(cmd + "\n"));
 
-  await writer.write(data);
-
-  console.log("sent:", cmd);
+  updateUI();
+  aiAnalyze();
 }
+
+// ===== UI COLOR UPDATE =====
+function updateUI(){
+
+  pumpBtn.innerText = state.pump ? "Pump ON" : "Pump OFF";
+  lightBtn.innerText = state.light ? "Light ON" : "Light OFF";
+  fanBtn.innerText = state.fan ? "Fan ON" : "Fan OFF";
+
+  pumpBtn.className = state.pump ? "on" : "off";
+  lightBtn.className = state.light ? "on" : "off";
+  fanBtn.className = state.fan ? "on" : "off";
+}
+
+// ===== AI ANALYSIS =====
+function aiAnalyze(){
+
+  let temp = parseInt(document.getElementById("temp").innerText);
+  let soil = parseInt(document.getElementById("soil").innerText);
+
+  let msg = "AI: Normal condition 🌿";
+
+  if (soil < 30 && !state.pump) {
+    msg = "AI: Soil dry → Recommend Pump ON 💧";
+  }
+  else if (temp > 35 && !state.fan) {
+    msg = "AI: Hot → Recommend Fan ON 🌬";
+  }
+  else if (state.pump) {
+    msg = "AI: Watering active 💧";
+  }
+
+  document.getElementById("aiText").innerText = msg;
+}
+
+updateUI();
+aiAnalyze();
 
 </script>
 
