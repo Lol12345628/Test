@@ -18,36 +18,25 @@ export default function handler(req, res) {
     let reason = "สภาพปกติ";
     let confidence = 90;
 
-    // 🌱 soil priority
     if (soil < 30) {
       ai = "PUMP ON";
       reason = "ดินแห้ง → ต้องรดน้ำ";
       confidence = 93;
     }
 
-    // 🌡 temp override
     if (temp > 35) {
       ai = "FAN ON";
       reason = "อุณหภูมิสูง → เปิดพัดลม";
       confidence = 95;
     }
 
-    // 💡 light
     if (light < 100) {
       ai = "LIGHT ON";
-      reason = "แสงน้อย → เปิดไฟช่วยพืช";
+      reason = "แสงน้อย → เปิดไฟ";
       confidence = 88;
     }
 
-    lastData = {
-      temp,
-      hum,
-      soil,
-      light,
-      ai,
-      reason,
-      confidence
-    };
+    lastData = { temp, hum, soil, light, ai, reason, confidence };
 
     return res.json({ ok: true, data: lastData });
   }

@@ -2,14 +2,14 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm PRO AI</title>
+<title>Smart Farm ESP32 AI</title>
 
 <style>
 
 body{
   margin:0;
   font-family:Arial;
-  background:radial-gradient(circle at top,#1e293b,#0b1220);
+  background:radial-gradient(circle,#1e293b,#0b1220);
   color:white;
 }
 
@@ -32,7 +32,6 @@ body{
   padding:18px;
   border-radius:16px;
   text-align:center;
-  backdrop-filter:blur(10px);
 }
 
 .value{
@@ -40,12 +39,6 @@ body{
   font-weight:bold;
 }
 
-.label{
-  font-size:12px;
-  opacity:0.7;
-}
-
-/* CONTROL */
 .control{
   display:flex;
   justify-content:center;
@@ -65,7 +58,6 @@ body{
 .on{background:#22c55e;color:white;}
 .off{background:#ef4444;color:white;}
 
-/* AI */
 .ai{
   text-align:center;
   color:#38bdf8;
@@ -78,37 +70,28 @@ body{
   opacity:0.8;
 }
 
-.conf{
-  text-align:center;
-  font-size:12px;
-  color:#a5f3fc;
-}
-
 </style>
 </head>
 
 <body>
 
-<div class="header">🤖 Smart Farm AI PRO</div>
+<div class="header">🤖 Smart Farm ESP32 AI</div>
 
 <div class="ai" id="ai">AI loading...</div>
 <div class="reason" id="reason">---</div>
-<div class="conf" id="conf">confidence --</div>
 
 <div class="control">
-
 <button class="btn off" id="pump" onclick="toggle('pump')">💧 Pump</button>
 <button class="btn off" id="fan" onclick="toggle('fan')">🌬 Fan</button>
 <button class="btn off" id="light" onclick="toggle('light')">💡 Light</button>
-
 </div>
 
 <div class="grid">
 
-<div class="card"><div class="label">🌡 TEMP</div><div class="value" id="t">--</div></div>
-<div class="card"><div class="label">💧 HUM</div><div class="value" id="h">--</div></div>
-<div class="card"><div class="label">🌱 SOIL</div><div class="value" id="s">--</div></div>
-<div class="card"><div class="label">💡 LIGHT</div><div class="value" id="l">--</div></div>
+<div class="card">🌡 TEMP <div class="value" id="t">--</div></div>
+<div class="card">💧 HUM <div class="value" id="h">--</div></div>
+<div class="card">🌱 SOIL <div class="value" id="s">--</div></div>
+<div class="card">💡 LIGHT <div class="value" id="l">--</div></div>
 
 </div>
 
@@ -116,20 +99,15 @@ body{
 
 let state = {pump:0,fan:0,light:0};
 
-// ===== AI =====
 function ai(d){
-
-  document.getElementById("ai").innerText="🤖 AI: "+d.ai;
+  document.getElementById("ai").innerText="🤖 "+d.ai;
   document.getElementById("reason").innerText="💡 "+d.reason;
-  document.getElementById("conf").innerText="🎯 "+d.confidence+"%";
 }
 
-// ===== LOAD =====
 async function load(){
 
   const r = await fetch("/api/sensor");
   const d = await r.json();
-
   const data = d.data;
 
   document.getElementById("t").innerText=data.temp.toFixed(1);
@@ -140,7 +118,6 @@ async function load(){
   ai(data);
 }
 
-// ===== CONTROL =====
 async function toggle(device){
 
   state[device] = !state[device];
@@ -158,7 +135,6 @@ async function toggle(device){
     state[device] ? "btn on" : "btn off";
 }
 
-// LOOP
 setInterval(load,1200);
 
 </script>
