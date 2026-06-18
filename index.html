@@ -2,57 +2,62 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>AI Farm PRO</title>
+<title>Smart Farm AI Dashboard</title>
 
 <style>
 
 body{
   font-family:Arial;
-  background:#0f172a;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
   color:white;
   text-align:center;
 }
 
+h2{ margin-top:15px; }
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,170px);
+  gap:12px;
+  justify-content:center;
+  margin-top:15px;
+}
+
+.card{
+  background:#111827;
+  padding:15px;
+  border-radius:15px;
+  box-shadow:0 0 10px rgba(0,0,0,0.4);
+}
+
+.value{
+  font-size:28px;
+  font-weight:bold;
+}
+
 button{
   padding:12px;
-  margin:5px;
+  margin:6px;
   width:150px;
   border:none;
   border-radius:10px;
   cursor:pointer;
+  font-weight:bold;
 }
 
 .on{background:#22c55e;color:white;}
 .off{background:#ef4444;color:white;}
 .connect{background:#3b82f6;color:white;}
 
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,160px);
-  gap:10px;
-  justify-content:center;
-  margin-top:10px;
-}
-
-.card{
-  background:#111827;
-  padding:12px;
-  border-radius:12px;
-}
-
-.value{
-  font-size:24px;
-  font-weight:bold;
-}
-
-.ai{
+.aiBox{
   margin-top:10px;
   color:#38bdf8;
+  font-size:14px;
 }
 
-.learn{
+.reason{
   font-size:12px;
-  opacity:0.7;
+  opacity:0.8;
 }
 
 </style>
@@ -60,25 +65,25 @@ button{
 
 <body>
 
-<h2>🤖 AI FARM PRO</h2>
+<h2>🤖 SMART FARM AI DASHBOARD</h2>
 
-<button class="connect" onclick="connectUSB()">Connect</button>
+<button class="connect" onclick="connectUSB()">Connect USB</button>
 
 <br>
 
-<button onclick="send('PUMP_ON')">Pump</button>
-<button onclick="send('LIGHT_ON')">Light</button>
-<button onclick="send('FAN_ON')">Fan</button>
+<button id="pump" class="off" onclick="toggle('PUMP_ON','PUMP_OFF','pump')">Pump</button>
+<button id="fan" class="off" onclick="toggle('FAN_ON','FAN_OFF','fan')">Fan</button>
+<button id="light" class="off" onclick="toggle('LIGHT_ON','LIGHT_OFF','light')">Light</button>
 
-<div class="ai" id="ai">AI: waiting...</div>
-<div class="learn" id="learn">learning...</div>
+<div class="aiBox" id="ai">AI: waiting sensor...</div>
+<div class="reason" id="reason">---</div>
 
 <div class="grid">
 
-<div class="card">🌡 <div id="t" class="value">-</div></div>
-<div class="card">💧 <div id="h" class="value">-</div></div>
-<div class="card">🌱 <div id="s" class="value">-</div></div>
-<div class="card">💡 <div id="l" class="value">-</div></div>
+  <div class="card">🌡 Temp <div class="value" id="t">--</div></div>
+  <div class="card">💧 Hum <div class="value" id="h">--</div></div>
+  <div class="card">🌱 Soil <div class="value" id="s">--</div></div>
+  <div class="card">💡 Light <div class="value" id="l">--</div></div>
 
 </div>
 
@@ -86,6 +91,13 @@ button{
 
 let port, writer;
 
+let state = {
+  pump:0,
+  fan:0,
+  light:0
+};
+
+// ===== CONNECT =====
 async function connectUSB(){
   port = await navigator.serial.requestPort();
   await port.open({baudRate:115200});
@@ -93,28 +105,44 @@ async function connectUSB(){
   readLoop();
 }
 
+// ===== SEND =====
 async function send(cmd){
   if(!writer) return;
   await writer.write(new TextEncoder().encode(cmd+"\n"));
 }
 
-// ===== AI DISPLAY =====
+// ===== TOGGLE =====
+function toggle(on,off,key){
+
+  state[key] = !state[key];
+
+  send(state[key] ? on : off);
+
+  document.getElementById(key).className =
+    state[key] ? "on" : "off";
+}
+
+// ===== AI LOGIC DISPLAY =====
 function ai(t,s,l){
 
   let msg="AI: normal";
+  let reason="system stable";
 
-  if(s < 30) msg="AI → pump ON (dry trend)";
-  else if(t > 35) msg="AI → fan ON (heat rising)";
-  else if(l < 100) msg="AI → light ON (dark trend)";
+  if(s < 30){
+    msg="AI: pump ON";
+    reason="soil dry → watering needed";
+  }
+  else if(t > 35){
+    msg="AI: fan ON";
+    reason="temperature high → cooling needed";
+  }
+  else if(l < 100){
+    msg="AI: light ON";
+    reason="low light → growth support";
+  }
 
   document.getElementById("ai").innerText = msg;
-}
-
-// ===== LEARNING DISPLAY =====
-function learn(a){
-
-  document.getElementById("learn").innerText =
-  `soilAvg:${a.soil} tempAvg:${a.temp} luxAvg:${a.lux}`;
+  document.getElementById("reason").innerText = reason;
 }
 
 // ===== READ =====
@@ -134,15 +162,9 @@ async function readLoop(){
     for(let l of lines){
 
       let d = l.split(",");
-      if(d.length < 7) continue;
+      if(d.length!=4) continue;
 
-      let t=+d[0];
-      let h=+d[1];
-      let s=+d[2];
-      let lx=+d[3];
-      let sa=+d[4];
-      let ta=+d[5];
-      let la=+d[6];
+      let t=+d[0], h=+d[1], s=+d[2], lx=+d[3];
 
       document.getElementById("t").innerText=t.toFixed(1);
       document.getElementById("h").innerText=h.toFixed(1);
@@ -150,7 +172,6 @@ async function readLoop(){
       document.getElementById("l").innerText=lx;
 
       ai(t,s,lx);
-      learn({soil:sa,temp:ta,lux:la});
     }
   }
 }
