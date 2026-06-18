@@ -1,137 +1,444 @@
 <!DOCTYPE html>
-<html>
+
+<html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm Control</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>🌱 Smart Farm AI Pro</title>
 
 <style>
 
-body{
+*{
   margin:0;
-  font-family:Arial;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:Arial,sans-serif;
   background:#0f172a;
   color:white;
+  min-height:100vh;
+}
+
+.header{
+  background:#111827;
+  padding:20px;
   text-align:center;
+  box-shadow:0 2px 10px rgba(0,0,0,.3);
 }
 
-h1{
-  margin-top:20px;
+.status{
+  margin-top:8px;
+  font-size:14px;
 }
 
-.box{
+.online{
+  color:#22c55e;
+}
+
+.offline{
+  color:#ef4444;
+}
+
+.grid{
   display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:10px;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px;
   padding:15px;
 }
 
 .card{
-  background:rgba(255,255,255,0.08);
-  padding:20px;
-  border-radius:12px;
+  background:#1e293b;
+  border-radius:18px;
+  padding:18px;
+  text-align:center;
+  transition:.3s;
+}
+
+.card:hover{
+  transform:translateY(-3px);
+}
+
+.label{
+  opacity:.8;
+  font-size:14px;
 }
 
 .value{
-  font-size:28px;
+  font-size:30px;
   font-weight:bold;
-}
-
-/* BUTTON */
-button{
-  padding:12px;
-  margin:6px;
-  border:none;
-  border-radius:10px;
-  font-weight:bold;
-  cursor:pointer;
-  width:120px;
-}
-
-.on{background:#22c55e;color:white;}
-.off{background:#ef4444;color:white;}
-
-.ai{
   margin-top:10px;
-  color:#38bdf8;
+}
+
+.ai-box{
+  margin:15px;
+  background:#1e293b;
+  border-radius:18px;
+  padding:18px;
+}
+
+.ai-title{
+  font-size:22px;
+  font-weight:bold;
+}
+
+.ai-on{
+  color:#22c55e;
+}
+
+.ai-warn{
+  color:#f59e0b;
+}
+
+.reason{
+  margin-top:10px;
+  color:#cbd5e1;
+}
+
+.control{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:10px;
+  padding:15px;
+}
+
+.btn{
+  border:none;
+  border-radius:16px;
+  padding:16px;
+  color:white;
+  cursor:pointer;
+  font-size:16px;
+  font-weight:bold;
+}
+
+.on{
+  background:#22c55e;
+}
+
+.off{
+  background:#ef4444;
+}
+
+.footer{
+  text-align:center;
+  padding:20px;
+  opacity:.7;
 }
 
 </style>
+
 </head>
 
 <body>
 
-<h1>🤖 Smart Farm ESP32</h1>
+<div class="header">
+  <h1>🌱 Smart Farm AI Pro</h1>
 
-<div class="ai" id="ai">AI loading...</div>
-<div id="reason"></div>
+  <div id="wifi" class="status online">
+    ● Online
+  </div>
+</div>
 
-<!-- SENSOR -->
-<div class="box">
+<div class="grid">
 
-<div class="card">🌡 TEMP<br><div class="value" id="t">--</div></div>
-<div class="card">💧 HUM<br><div class="value" id="h">--</div></div>
-<div class="card">🌱 SOIL<br><div class="value" id="s">--</div></div>
-<div class="card">💡 LIGHT<br><div class="value" id="l">--</div></div>
+  <div class="card">
+    <div class="label">🌡 อุณหภูมิ</div>
+    <div class="value" id="temp">--</div>
+  </div>
+
+  <div class="card">
+    <div class="label">💧 ความชื้น</div>
+    <div class="value" id="hum">--</div>
+  </div>
+
+  <div class="card">
+    <div class="label">🌱 ดิน</div>
+    <div class="value" id="soil">--</div>
+  </div>
+
+  <div class="card">
+    <div class="label">☀ แสง</div>
+    <div class="value" id="light">--</div>
+  </div>
+
+  <div class="card">
+    <div class="label">🎯 Confidence</div>
+    <div class="value" id="confidence">--</div>
+  </div>
+
+  <div class="card">
+    <div class="label">📈 Trend</div>
+    <div class="value" id="trend">--</div>
+  </div>
 
 </div>
 
-<!-- CONTROL -->
-<div>
+<div class="ai-box">
 
-<button class="off" id="pump" onclick="toggle('pump')">💧 Pump</button>
-<button class="off" id="fan" onclick="toggle('fan')">🌬 Fan</button>
-<button class="off" id="light" onclick="toggle('light')">💡 Light</button>
+  <div id="ai" class="ai-title">
+    🤖 AI กำลังวิเคราะห์...
+  </div>
 
+  <div id="reason" class="reason">
+    รอข้อมูลเซ็นเซอร์...
+  </div>
+
+</div>
+
+<div class="control">
+
+<button id="pumpBtn"
+       class="btn off"
+       onclick="toggle('pump')">
+💧 Pump OFF </button>
+
+<button id="fanBtn"
+       class="btn off"
+       onclick="toggle('fan')">
+🌬 Fan OFF </button>
+
+<button id="lightBtn"
+       class="btn off"
+       onclick="toggle('light')">
+💡 Light OFF </button>
+
+</div>
+
+<div class="footer">
+  Last Update :
+  <span id="time">--</span>
 </div>
 
 <script>
 
-let state={pump:0,fan:0,light:0};
+let state = {
+  pump:false,
+  fan:false,
+  light:false
+};
 
-const sensorURL="/api/sensor";
-const controlURL="/api/control";
+let busy = false;
 
-// ================= AI DISPLAY =================
-function showAI(d){
-  document.getElementById("ai").innerText="🤖 "+d.ai;
-  document.getElementById("reason").innerText="💡 "+d.reason;
+function updateButton(id,on,name){
+
+  const btn =
+    document.getElementById(id);
+
+  if(on){
+    btn.className="btn on";
+    btn.innerText=name+" ON";
+  }else{
+    btn.className="btn off";
+    btn.innerText=name+" OFF";
+  }
 }
 
-// ================= LOAD SENSOR =================
-async function load(){
+async function loadControl(){
 
-  const r=await fetch(sensorURL);
-  const d=await r.json();
-  const data=d.data;
+  try{
 
-  document.getElementById("t").innerText=data.temp.toFixed(1);
-  document.getElementById("h").innerText=data.hum.toFixed(1);
-  document.getElementById("s").innerText=data.soil;
-  document.getElementById("l").innerText=data.light;
+    const res =
+      await fetch("/api/control");
 
-  showAI(data);
+    const data =
+      await res.json();
+
+    state = {
+      pump: !!data.pump,
+      fan: !!data.fan,
+      light: !!data.light
+    };
+
+    updateButton(
+      "pumpBtn",
+      state.pump,
+      "💧 Pump"
+    );
+
+    updateButton(
+      "fanBtn",
+      state.fan,
+      "🌬 Fan"
+    );
+
+    updateButton(
+      "lightBtn",
+      state.light,
+      "💡 Light"
+    );
+
+  }catch(err){
+    console.log(err);
+  }
 }
 
-// ================= CONTROL =================
 async function toggle(device){
 
-  state[device]=!state[device];
+  if(busy) return;
 
-  await fetch(controlURL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      device:device,
-      value:state[device]?1:0
-    })
-  });
+  busy = true;
 
-  document.getElementById(device).className =
-    state[device] ? "on" : "off";
+  try{
+
+    state[device] =
+      !state[device];
+
+    updateButton(
+      device+"Btn",
+      state[device],
+      device==="pump"
+      ? "💧 Pump"
+      : device==="fan"
+      ? "🌬 Fan"
+      : "💡 Light"
+    );
+
+    await fetch(
+      "/api/control",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":
+          "application/json"
+        },
+        body:JSON.stringify({
+          device,
+          value:
+          state[device] ? 1 : 0
+        })
+      }
+    );
+
+  }catch(err){
+    console.log(err);
+  }
+
+  busy = false;
 }
 
-// LOOP
-setInterval(load,1200);
+async function loadSensor(){
+
+  try{
+
+    const res =
+      await fetch("/api/sensor");
+
+    const json =
+      await res.json();
+
+    const d =
+      json.data;
+
+    document.getElementById(
+      "temp"
+    ).innerText =
+      d.sensors.temp + "°C";
+
+    document.getElementById(
+      "hum"
+    ).innerText =
+      d.sensors.hum + "%";
+
+    document.getElementById(
+      "soil"
+    ).innerText =
+      d.sensors.soil + "%";
+
+    document.getElementById(
+      "light"
+    ).innerText =
+      d.sensors.light;
+
+    document.getElementById(
+      "confidence"
+    ).innerText =
+      d.ai.confidence + "%";
+
+    document.getElementById(
+      "trend"
+    ).innerText =
+      d.learning.trend;
+
+    const ai =
+      document.getElementById(
+        "ai"
+      );
+
+    ai.innerText =
+      "🤖 " +
+      d.ai.actions.join(
+        " | "
+      );
+
+    document.getElementById(
+      "reason"
+    ).innerText =
+      d.ai.reasons.join(
+        ", "
+      );
+
+    if(
+      d.ai.actions.includes(
+        "PUMP_ON"
+      )
+    ){
+      ai.className =
+        "ai-title ai-on";
+    }
+    else if(
+      d.ai.actions.includes(
+        "PREDICT_WATER_SOON"
+      )
+    ){
+      ai.className =
+        "ai-title ai-warn";
+    }
+    else{
+      ai.className =
+        "ai-title";
+    }
+
+    document.getElementById(
+      "wifi"
+    ).className =
+      "status online";
+
+    document.getElementById(
+      "wifi"
+    ).innerText =
+      "● Online";
+
+    document.getElementById(
+      "time"
+    ).innerText =
+      new Date()
+      .toLocaleTimeString();
+
+  }
+  catch(err){
+
+    document.getElementById(
+      "wifi"
+    ).className =
+      "status offline";
+
+    document.getElementById(
+      "wifi"
+    ).innerText =
+      "● Offline";
+  }
+}
+
+loadControl();
+loadSensor();
+
+setInterval(
+  loadSensor,
+  1000
+);
 
 </script>
 
