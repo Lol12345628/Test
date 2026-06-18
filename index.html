@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm AI PRO</title>
+<title>Smart Farm PRO AI</title>
 
 <style>
 
@@ -15,52 +15,11 @@ body{
 
 .header{
   text-align:center;
-  padding:20px;
+  padding:18px;
   font-size:22px;
   font-weight:bold;
 }
 
-/* STATUS */
-.aiBox{
-  text-align:center;
-  margin:10px;
-  color:#38bdf8;
-  font-size:16px;
-}
-
-.reason{
-  text-align:center;
-  font-size:13px;
-  opacity:0.8;
-}
-
-.conf{
-  text-align:center;
-  font-size:12px;
-  color:#a5f3fc;
-}
-
-/* CONTROL */
-.control{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  margin:15px;
-}
-
-.btn{
-  width:110px;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.on{background:#22c55e;color:white;}
-.off{background:#ef4444;color:white;}
-
-/* GRID */
 .grid{
   display:grid;
   grid-template-columns:repeat(2,1fr);
@@ -86,21 +45,62 @@ body{
   opacity:0.7;
 }
 
+/* CONTROL */
+.control{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin:15px;
+}
+
+.btn{
+  width:110px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.on{background:#22c55e;color:white;}
+.off{background:#ef4444;color:white;}
+
+/* AI */
+.ai{
+  text-align:center;
+  color:#38bdf8;
+  font-size:18px;
+}
+
+.reason{
+  text-align:center;
+  font-size:13px;
+  opacity:0.8;
+}
+
+.conf{
+  text-align:center;
+  font-size:12px;
+  color:#a5f3fc;
+}
+
 </style>
 </head>
 
 <body>
 
-<div class="header">🤖 Smart Farm AI PRO SYSTEM</div>
+<div class="header">🤖 Smart Farm AI PRO</div>
 
-<div class="aiBox" id="ai">AI: loading...</div>
+<div class="ai" id="ai">AI loading...</div>
 <div class="reason" id="reason">---</div>
-<div class="conf" id="conf">confidence: --</div>
+<div class="conf" id="conf">confidence --</div>
 
 <div class="control">
+
 <button class="btn off" id="pump" onclick="toggle('pump')">💧 Pump</button>
 <button class="btn off" id="fan" onclick="toggle('fan')">🌬 Fan</button>
 <button class="btn off" id="light" onclick="toggle('light')">💡 Light</button>
+
 </div>
 
 <div class="grid">
@@ -116,45 +116,15 @@ body{
 
 let state = {pump:0,fan:0,light:0};
 
-// ===== AI (SMART + CONFIDENCE) =====
-function ai(t,s,l){
+// ===== AI =====
+function ai(d){
 
-  let msg="STABLE 🌿";
-  let reason="All conditions normal";
-  let conf=95;
-
-  // 🌱 soil logic (main priority)
-  if(s < 30){
-    msg="PUMP ON 💧";
-    reason="Soil dry → irrigation needed";
-    conf=92;
-  }
-  else if(s > 70){
-    msg="PUMP OFF 🚫";
-    reason="Soil enough moisture";
-    conf=90;
-  }
-
-  // 🌡 temp override
-  if(t > 35){
-    msg="FAN ON 🌬";
-    reason="High temperature cooling required";
-    conf=96;
-  }
-
-  // 💡 light logic
-  if(l < 100){
-    msg="LIGHT ON 💡";
-    reason="Low light detected";
-    conf=88;
-  }
-
-  document.getElementById("ai").innerText="AI: "+msg;
-  document.getElementById("reason").innerText=reason;
-  document.getElementById("conf").innerText="Confidence: "+conf+"%";
+  document.getElementById("ai").innerText="🤖 AI: "+d.ai;
+  document.getElementById("reason").innerText="💡 "+d.reason;
+  document.getElementById("conf").innerText="🎯 "+d.confidence+"%";
 }
 
-// ===== LOAD SENSOR =====
+// ===== LOAD =====
 async function load(){
 
   const r = await fetch("/api/sensor");
@@ -167,7 +137,7 @@ async function load(){
   document.getElementById("s").innerText=data.soil;
   document.getElementById("l").innerText=data.light;
 
-  ai(data.temp,data.soil,data.light);
+  ai(data);
 }
 
 // ===== CONTROL =====
