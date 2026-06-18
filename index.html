@@ -2,32 +2,170 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm Live</title>
+<title>Smart Farm Dashboard</title>
+
+<style>
+
+body{
+  margin:0;
+  font-family:Arial;
+  background:linear-gradient(135deg,#0b1220,#1e293b);
+  color:white;
+}
+
+/* HEADER */
+.header{
+  text-align:center;
+  padding:20px;
+  font-size:22px;
+  font-weight:bold;
+}
+
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+  padding:15px;
+}
+
+/* CARD */
+.card{
+  background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(10px);
+  padding:18px;
+  border-radius:16px;
+  box-shadow:0 0 10px rgba(0,0,0,0.4);
+  text-align:center;
+}
+
+.label{
+  font-size:13px;
+  opacity:0.7;
+}
+
+.value{
+  font-size:30px;
+  font-weight:bold;
+  margin-top:6px;
+}
+
+/* AI BOX */
+.aiBox{
+  text-align:center;
+  margin-top:10px;
+  color:#38bdf8;
+  font-size:16px;
+}
+
+.reason{
+  text-align:center;
+  font-size:13px;
+  opacity:0.8;
+}
+
+/* STATUS DOT */
+.dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  display:inline-block;
+  margin-right:6px;
+}
+
+.green{background:#22c55e;}
+.red{background:#ef4444;}
+
+</style>
 </head>
 
 <body>
 
-<h2>📡 ESP32 Live Data</h2>
+<div class="header">
+🤖 Smart Farm Dashboard (Vercel + ESP32)
+</div>
 
-<pre id="out">loading...</pre>
+<div class="aiBox" id="ai">
+🟡 AI: waiting data...
+</div>
+
+<div class="reason" id="reason">
+---
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    🌡 Temperature
+    <div class="value" id="t">--</div>
+  </div>
+
+  <div class="card">
+    💧 Humidity
+    <div class="value" id="h">--</div>
+  </div>
+
+  <div class="card">
+    🌱 Soil
+    <div class="value" id="s">--</div>
+  </div>
+
+  <div class="card">
+    💡 Light
+    <div class="value" id="l">--</div>
+  </div>
+
+</div>
 
 <script>
 
-async function load(){
+// ===== AI LOGIC =====
+function ai(t,s,l){
 
-  const res = await fetch("/api/sensor",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({test:true})
-  });
+  let msg="🟢 AI: stable";
+  let reason="All sensors normal";
 
-  const data = await res.json();
+  if(s < 30){
+    msg="🌱 AI: Pump ON";
+    reason="Soil moisture low → watering needed";
+  }
+  else if(t > 35){
+    msg="🌡 AI: Fan ON";
+    reason="Temperature high → cooling required";
+  }
+  else if(l < 100){
+    msg="💡 AI: Light ON";
+    reason="Low light → growth support";
+  }
 
-  document.getElementById("out").innerText =
-    JSON.stringify(data, null, 2);
+  document.getElementById("ai").innerText = msg;
+  document.getElementById("reason").innerText = reason;
 }
 
-setInterval(load,2000);
+// ===== FETCH DATA =====
+async function loadData(){
+
+  try{
+
+    const res = await fetch("/api/sensor");
+    const d = await res.json();
+
+    const data = d.data;
+
+    document.getElementById("t").innerText = data.temp.toFixed(1);
+    document.getElementById("h").innerText = data.hum.toFixed(1);
+    document.getElementById("s").innerText = data.soil;
+    document.getElementById("l").innerText = data.light;
+
+    ai(data.temp, data.soil, data.light);
+
+  }catch(e){
+    console.log("no data");
+  }
+}
+
+// ===== LOOP =====
+setInterval(loadData, 1500);
 
 </script>
 
