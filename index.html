@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm AI Dashboard</title>
+<title>AI Smart Farm Explainable</title>
 
 <style>
 
@@ -27,7 +27,6 @@ h2{ margin-top:15px; }
   background:#111827;
   padding:15px;
   border-radius:15px;
-  box-shadow:0 0 10px rgba(0,0,0,0.4);
 }
 
 .value{
@@ -50,14 +49,25 @@ button{
 .connect{background:#3b82f6;color:white;}
 
 .aiBox{
-  margin-top:10px;
+  margin-top:15px;
   color:#38bdf8;
-  font-size:14px;
+  font-size:16px;
 }
 
 .reason{
+  margin-top:5px;
+  font-size:13px;
+  opacity:0.9;
+  color:#cbd5e1;
+}
+
+.badge{
+  display:inline-block;
+  padding:4px 10px;
+  border-radius:20px;
+  background:#1e40af;
   font-size:12px;
-  opacity:0.8;
+  margin-top:10px;
 }
 
 </style>
@@ -65,18 +75,20 @@ button{
 
 <body>
 
-<h2>🤖 SMART FARM AI DASHBOARD</h2>
+<h2>🤖 AI Smart Farm (Explainable AI)</h2>
 
 <button class="connect" onclick="connectUSB()">Connect USB</button>
 
 <br>
 
-<button id="pump" class="off" onclick="toggle('PUMP_ON','PUMP_OFF','pump')">Pump</button>
-<button id="fan" class="off" onclick="toggle('FAN_ON','FAN_OFF','fan')">Fan</button>
-<button id="light" class="off" onclick="toggle('LIGHT_ON','LIGHT_OFF','light')">Light</button>
+<button onclick="send('PUMP_ON')">Pump</button>
+<button onclick="send('FAN_ON')">Fan</button>
+<button onclick="send('LIGHT_ON')">Light</button>
 
 <div class="aiBox" id="ai">AI: waiting sensor...</div>
-<div class="reason" id="reason">---</div>
+<div class="reason" id="reason">reason: -</div>
+
+<div class="badge" id="mode">AI MODE: ACTIVE</div>
 
 <div class="grid">
 
@@ -90,12 +102,6 @@ button{
 <script>
 
 let port, writer;
-
-let state = {
-  pump:0,
-  fan:0,
-  light:0
-};
 
 // ===== CONNECT =====
 async function connectUSB(){
@@ -111,41 +117,39 @@ async function send(cmd){
   await writer.write(new TextEncoder().encode(cmd+"\n"));
 }
 
-// ===== TOGGLE =====
-function toggle(on,off,key){
+// ===== AI EXPLAIN =================
+function aiExplain(t,soil,lux){
 
-  state[key] = !state[key];
+  let action = "STABLE";
+  let reason = "All values normal";
 
-  send(state[key] ? on : off);
+  // 🌱 SOIL
+  if(soil < 30){
+    action = "PUMP ON";
+    reason = "Soil moisture low → plant needs water";
+  }
+  else if(soil > 60){
+    action = "PUMP OFF";
+    reason = "Soil moisture enough → stop watering";
+  }
 
-  document.getElementById(key).className =
-    state[key] ? "on" : "off";
+  // 🌡 TEMP override
+  if(t > 35){
+    action = "FAN ON";
+    reason = "Temperature high → cooling needed to protect plant";
+  }
+
+  // 💡 LIGHT override
+  if(lux < 100){
+    action = "LIGHT ON";
+    reason = "Light too low → growth support needed";
+  }
+
+  document.getElementById("ai").innerText = "AI: " + action;
+  document.getElementById("reason").innerText = "Reason: " + reason;
 }
 
-// ===== AI LOGIC DISPLAY =====
-function ai(t,s,l){
-
-  let msg="AI: normal";
-  let reason="system stable";
-
-  if(s < 30){
-    msg="AI: pump ON";
-    reason="soil dry → watering needed";
-  }
-  else if(t > 35){
-    msg="AI: fan ON";
-    reason="temperature high → cooling needed";
-  }
-  else if(l < 100){
-    msg="AI: light ON";
-    reason="low light → growth support";
-  }
-
-  document.getElementById("ai").innerText = msg;
-  document.getElementById("reason").innerText = reason;
-}
-
-// ===== READ =====
+// ===== READ DATA =====
 async function readLoop(){
 
   const r = port.readable.getReader();
@@ -164,14 +168,17 @@ async function readLoop(){
       let d = l.split(",");
       if(d.length!=4) continue;
 
-      let t=+d[0], h=+d[1], s=+d[2], lx=+d[3];
+      let t=+d[0];
+      let h=+d[1];
+      let s=+d[2];
+      let lx=+d[3];
 
       document.getElementById("t").innerText=t.toFixed(1);
       document.getElementById("h").innerText=h.toFixed(1);
       document.getElementById("s").innerText=s;
       document.getElementById("l").innerText=lx;
 
-      ai(t,s,lx);
+      aiExplain(t,s,lx);
     }
   }
 }
