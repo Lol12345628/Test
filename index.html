@@ -2,265 +2,32 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm AI PRO v3</title>
-
-<style>
-
-body{
-  margin:0;
-  font-family:Arial;
-  background:radial-gradient(circle at top,#1e293b,#0b1220);
-  color:white;
-}
-
-/* HEADER */
-.header{
-  text-align:center;
-  padding:18px;
-  font-size:22px;
-  font-weight:bold;
-}
-
-/* CONNECT */
-.top{
-  text-align:center;
-}
-.connect{
-  padding:12px 18px;
-  border:none;
-  border-radius:12px;
-  background:#3b82f6;
-  color:white;
-  cursor:pointer;
-}
-
-/* STATUS BAR */
-.status{
-  text-align:center;
-  margin:10px;
-}
-.badge{
-  padding:5px 12px;
-  border-radius:20px;
-  background:#1e40af;
-  font-size:11px;
-}
-
-/* GRID */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:12px;
-  padding:15px;
-}
-
-.card{
-  background:rgba(255,255,255,0.06);
-  padding:18px;
-  border-radius:16px;
-  backdrop-filter:blur(10px);
-  box-shadow:0 0 12px rgba(0,0,0,0.4);
-}
-
-.label{opacity:0.7;font-size:13px;}
-.value{font-size:30px;font-weight:bold;margin-top:5px;}
-
-/* BUTTONS */
-.buttons{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  margin-top:10px;
-}
-
-.btn{
-  width:110px;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.on{background:#22c55e;color:white;}
-.off{background:#ef4444;color:white;}
-
-/* AI BOX */
-.ai{
-  text-align:center;
-  margin-top:10px;
-  color:#38bdf8;
-  font-size:16px;
-}
-
-.reason{
-  text-align:center;
-  font-size:13px;
-  opacity:0.8;
-}
-
-.conf{
-  text-align:center;
-  font-size:12px;
-  color:#a5f3fc;
-}
-
-</style>
+<title>Smart Farm Live</title>
 </head>
 
 <body>
 
-<div class="header">🤖 Smart Farm AI v3 PRO</div>
+<h2>📡 ESP32 Live Data</h2>
 
-<div class="top">
-<button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
-</div>
-
-<div class="status">
-<span class="badge" id="mode">AUTO AI ACTIVE</span>
-</div>
-
-<div class="buttons">
-<button id="pump" class="btn off" onclick="toggle('PUMP_ON','PUMP_OFF','pump')">💧 Pump</button>
-<button id="fan" class="btn off" onclick="toggle('FAN_ON','FAN_OFF','fan')">🌬 Fan</button>
-<button id="light" class="btn off" onclick="toggle('LIGHT_ON','LIGHT_OFF','light')">💡 Light</button>
-</div>
-
-<div class="ai" id="ai">AI: waiting...</div>
-<div class="reason" id="reason">---</div>
-<div class="conf" id="conf">confidence: --</div>
-
-<div class="grid">
-
-<div class="card">
-<div class="label">🌡 Temp</div>
-<div class="value" id="t">--</div>
-</div>
-
-<div class="card">
-<div class="label">💧 Hum</div>
-<div class="value" id="h">--</div>
-</div>
-
-<div class="card">
-<div class="label">🌱 Soil</div>
-<div class="value" id="s">--</div>
-</div>
-
-<div class="card">
-<div class="label">💡 Light</div>
-<div class="value" id="l">--</div>
-</div>
-
-</div>
+<pre id="out">loading...</pre>
 
 <script>
 
-let port, writer;
-let state={pump:0,fan:0,light:0};
+async function load(){
 
-// ===== CONNECT =====
-async function connectUSB(){
-  port = await navigator.serial.requestPort();
-  await port.open({baudRate:115200});
-  writer = port.writable.getWriter();
-  readLoop();
+  const res = await fetch("/api/sensor",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({test:true})
+  });
+
+  const data = await res.json();
+
+  document.getElementById("out").innerText =
+    JSON.stringify(data, null, 2);
 }
 
-// ===== SEND =====
-async function send(cmd){
-  if(!writer) return;
-  await writer.write(new TextEncoder().encode(cmd+"\n"));
-}
-
-// ===== TOGGLE =====
-function toggle(on,off,key){
-
-  state[key] = !state[key];
-
-  send(state[key] ? on : off);
-
-  document.getElementById(key).className =
-    state[key] ? "btn on" : "btn off";
-
-  document.getElementById("mode").innerText =
-    "MANUAL OVERRIDE ACTIVE";
-}
-
-// ===== AI ENGINE (SMART + CONFIDENCE) =====
-function ai(t,s,l){
-
-  let action="STABLE";
-  let reason="All conditions normal";
-  let conf=95;
-
-  // 🌱 soil logic (trend based)
-  if(s < 30){
-    action="PUMP ON";
-    reason="Soil moisture low → watering required";
-    conf=92;
-  }
-  else if(s > 60){
-    action="PUMP OFF";
-    reason="Soil moisture sufficient";
-    conf=90;
-  }
-
-  // 🌡 temp override
-  if(t > 35){
-    action="FAN ON";
-    reason="Temperature high → cooling needed";
-    conf=96;
-  }
-  else if(t > 40){
-    conf=99;
-  }
-
-  // 💡 light
-  if(l < 100){
-    action="LIGHT ON";
-    reason="Low light → growth support needed";
-    conf=88;
-  }
-
-  document.getElementById("ai").innerText="AI: "+action;
-  document.getElementById("reason").innerText="Reason: "+reason;
-  document.getElementById("conf").innerText="Confidence: "+conf+"%";
-}
-
-// ===== READ =====
-async function readLoop(){
-
-  const r = port.readable.getReader();
-  let b="";
-
-  while(true){
-
-    const {value} = await r.read();
-    b += new TextDecoder().decode(value);
-
-    let lines=b.split("\n");
-    b=lines.pop();
-
-    for(let l of lines){
-
-      let d=l.split(",");
-      if(d.length!=4) continue;
-
-      let t=+d[0];
-      let h=+d[1];
-      let s=+d[2];
-      let lx=+d[3];
-
-      document.getElementById("t").innerText=t.toFixed(1);
-      document.getElementById("h").innerText=h.toFixed(1);
-      document.getElementById("s").innerText=s;
-      document.getElementById("l").innerText=lx;
-
-      ai(t,s,lx);
-    }
-  }
-}
+setInterval(load,2000);
 
 </script>
 
