@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm ESP32 AI</title>
+<title>Smart Farm AI PRO</title>
 
 <style>
 
@@ -32,6 +32,7 @@ body{
   padding:18px;
   border-radius:16px;
   text-align:center;
+  backdrop-filter:blur(10px);
 }
 
 .value{
@@ -70,15 +71,27 @@ body{
   opacity:0.8;
 }
 
+.memory{
+  text-align:center;
+  font-size:12px;
+  opacity:0.8;
+  margin-top:5px;
+}
+
 </style>
 </head>
 
 <body>
 
-<div class="header">🤖 Smart Farm ESP32 AI</div>
+<div class="header">🤖 Smart Farm AI Learning System</div>
 
 <div class="ai" id="ai">AI loading...</div>
 <div class="reason" id="reason">---</div>
+
+<div class="memory">
+🧠 Open: <span id="open">--</span> |
+Close: <span id="close">--</span>
+</div>
 
 <div class="control">
 <button class="btn off" id="pump" onclick="toggle('pump')">💧 Pump</button>
@@ -97,18 +110,24 @@ body{
 
 <script>
 
-let state = {pump:0,fan:0,light:0};
+let state={pump:0,fan:0,light:0};
 
+// ===== AI =====
 function ai(d){
+
   document.getElementById("ai").innerText="🤖 "+d.ai;
   document.getElementById("reason").innerText="💡 "+d.reason;
+
+  document.getElementById("open").innerText=d.memory.soilOpen.toFixed(1);
+  document.getElementById("close").innerText=d.memory.soilClose.toFixed(1);
 }
 
+// ===== LOAD =====
 async function load(){
 
-  const r = await fetch("/api/sensor");
-  const d = await r.json();
-  const data = d.data;
+  const r=await fetch("/api/sensor");
+  const d=await r.json();
+  const data=d.data;
 
   document.getElementById("t").innerText=data.temp.toFixed(1);
   document.getElementById("h").innerText=data.hum.toFixed(1);
@@ -118,9 +137,10 @@ async function load(){
   ai(data);
 }
 
+// ===== CONTROL =====
 async function toggle(device){
 
-  state[device] = !state[device];
+  state[device]=!state[device];
 
   await fetch("/api/control",{
     method:"POST",
@@ -131,8 +151,8 @@ async function toggle(device){
     })
   });
 
-  document.getElementById(device).className =
-    state[device] ? "btn on" : "btn off";
+  document.getElementById(device).className=
+    state[device]?"btn on":"btn off";
 }
 
 setInterval(load,1200);
