@@ -2,88 +2,57 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm ULTRA AI</title>
+<title>Smart Farm Control</title>
 
 <style>
 
 body{
   margin:0;
   font-family:Arial;
-  background:radial-gradient(circle at top,#0f172a,#020617);
+  background:#0f172a;
   color:white;
-}
-
-.header{
   text-align:center;
-  padding:18px;
-  font-size:22px;
-  font-weight:bold;
 }
 
-/* GRID */
-.grid{
+h1{
+  margin-top:20px;
+}
+
+.box{
   display:grid;
   grid-template-columns:repeat(2,1fr);
-  gap:12px;
+  gap:10px;
   padding:15px;
 }
 
 .card{
-  background:rgba(255,255,255,0.06);
-  padding:18px;
-  border-radius:16px;
-  text-align:center;
-  backdrop-filter:blur(12px);
+  background:rgba(255,255,255,0.08);
+  padding:20px;
+  border-radius:12px;
 }
 
 .value{
-  font-size:30px;
+  font-size:28px;
   font-weight:bold;
 }
 
-/* CONTROL */
-.control{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  margin:15px;
-}
-
-.btn{
-  width:110px;
-  padding:10px;
+/* BUTTON */
+button{
+  padding:12px;
+  margin:6px;
   border:none;
   border-radius:10px;
   font-weight:bold;
   cursor:pointer;
+  width:120px;
 }
 
 .on{background:#22c55e;color:white;}
 .off{background:#ef4444;color:white;}
 
-/* AI PANEL */
 .ai{
-  text-align:center;
-  font-size:18px;
+  margin-top:10px;
   color:#38bdf8;
-}
-
-.reason{
-  text-align:center;
-  font-size:13px;
-  opacity:0.8;
-}
-
-.conf{
-  text-align:center;
-  font-size:12px;
-  color:#67e8f9;
-}
-
-.memory{
-  text-align:center;
-  font-size:12px;
-  opacity:0.7;
 }
 
 </style>
@@ -91,75 +60,78 @@ body{
 
 <body>
 
-<div class="header">🤖 Smart Farm ULTRA AI SYSTEM</div>
+<h1>🤖 Smart Farm ESP32</h1>
 
 <div class="ai" id="ai">AI loading...</div>
-<div class="reason" id="reason">---</div>
-<div class="conf" id="conf">---</div>
+<div id="reason"></div>
 
-<div class="memory">
-🧠 Open: <span id="open">--</span> | Close: <span id="close">--</span>
+<!-- SENSOR -->
+<div class="box">
+
+<div class="card">🌡 TEMP<br><div class="value" id="t">--</div></div>
+<div class="card">💧 HUM<br><div class="value" id="h">--</div></div>
+<div class="card">🌱 SOIL<br><div class="value" id="s">--</div></div>
+<div class="card">💡 LIGHT<br><div class="value" id="l">--</div></div>
+
 </div>
 
-<div class="control">
-<button class="btn off" onclick="toggle('pump')" id="pump">💧 Pump</button>
-<button class="btn off" onclick="toggle('fan')" id="fan">🌬 Fan</button>
-<button class="btn off" onclick="toggle('light')" id="light">💡 Light</button>
-</div>
+<!-- CONTROL -->
+<div>
 
-<div class="grid">
-
-<div class="card">🌡 TEMP <div class="value" id="t">--</div></div>
-<div class="card">💧 HUM <div class="value" id="h">--</div></div>
-<div class="card">🌱 SOIL <div class="value" id="s">--</div></div>
-<div class="card">💡 LIGHT <div class="value" id="l">--</div></div>
+<button class="off" id="pump" onclick="toggle('pump')">💧 Pump</button>
+<button class="off" id="fan" onclick="toggle('fan')">🌬 Fan</button>
+<button class="off" id="light" onclick="toggle('light')">💡 Light</button>
 
 </div>
 
 <script>
 
-let state = {pump:0,fan:0,light:0};
+let state={pump:0,fan:0,light:0};
 
-function ai(d){
+const sensorURL="/api/sensor";
+const controlURL="/api/control";
 
+// ================= AI DISPLAY =================
+function showAI(d){
   document.getElementById("ai").innerText="🤖 "+d.ai;
   document.getElementById("reason").innerText="💡 "+d.reason;
-  document.getElementById("conf").innerText="🎯 "+d.confidence+"%";
-
-  document.getElementById("open").innerText=d.memory.soilOpen.toFixed(1);
-  document.getElementById("close").innerText=d.memory.soilClose.toFixed(1);
 }
 
+// ================= LOAD SENSOR =================
 async function load(){
 
-  const r = await fetch("/api/sensor");
-  const d = await r.json();
-
-  const data = d.data;
+  const r=await fetch(sensorURL);
+  const d=await r.json();
+  const data=d.data;
 
   document.getElementById("t").innerText=data.temp.toFixed(1);
   document.getElementById("h").innerText=data.hum.toFixed(1);
   document.getElementById("s").innerText=data.soil;
   document.getElementById("l").innerText=data.light;
 
-  ai(data);
+  showAI(data);
 }
 
+// ================= CONTROL =================
 async function toggle(device){
 
   state[device]=!state[device];
 
-  await fetch("/api/control",{
+  await fetch(controlURL,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({device,value:state[device]?1:0})
+    body:JSON.stringify({
+      device:device,
+      value:state[device]?1:0
+    })
   });
 
   document.getElementById(device).className =
-    state[device] ? "btn on" : "btn off";
+    state[device] ? "on" : "off";
 }
 
-setInterval(load,1000);
+// LOOP
+setInterval(load,1200);
 
 </script>
 
