@@ -2,42 +2,75 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>AI Smart Farm Explainable</title>
+<title>Smart Farm AI Pro</title>
 
 <style>
 
 body{
+  margin:0;
   font-family:Arial;
-  background:linear-gradient(135deg,#0f172a,#1e293b);
+  background:linear-gradient(135deg,#0b1220,#1e293b);
   color:white;
-  text-align:center;
 }
 
-h2{ margin-top:15px; }
+/* HEADER */
+.header{
+  padding:20px;
+  text-align:center;
+  font-size:22px;
+  font-weight:bold;
+}
 
+/* CONNECT */
+.connect{
+  background:#3b82f6;
+  border:none;
+  padding:12px;
+  color:white;
+  border-radius:12px;
+  cursor:pointer;
+  margin-bottom:10px;
+}
+
+/* GRID */
 .grid{
   display:grid;
-  grid-template-columns:repeat(2,170px);
+  grid-template-columns:repeat(2,1fr);
   gap:12px;
-  justify-content:center;
-  margin-top:15px;
+  padding:15px;
 }
 
+/* CARD */
 .card{
-  background:#111827;
+  background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(10px);
+  border-radius:16px;
   padding:15px;
-  border-radius:15px;
+  box-shadow:0 0 10px rgba(0,0,0,0.3);
+}
+
+.label{
+  font-size:13px;
+  opacity:0.7;
 }
 
 .value{
   font-size:28px;
   font-weight:bold;
+  margin-top:5px;
 }
 
-button{
-  padding:12px;
-  margin:6px;
-  width:150px;
+/* BUTTONS */
+.buttons{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin:10px;
+}
+
+.btn{
+  width:100px;
+  padding:10px;
   border:none;
   border-radius:10px;
   cursor:pointer;
@@ -46,28 +79,29 @@ button{
 
 .on{background:#22c55e;color:white;}
 .off{background:#ef4444;color:white;}
-.connect{background:#3b82f6;color:white;}
 
+/* AI BOX */
 .aiBox{
-  margin-top:15px;
+  margin:10px;
+  text-align:center;
   color:#38bdf8;
-  font-size:16px;
+  font-size:14px;
 }
 
 .reason{
-  margin-top:5px;
-  font-size:13px;
-  opacity:0.9;
-  color:#cbd5e1;
+  text-align:center;
+  font-size:12px;
+  opacity:0.8;
 }
 
+/* STATUS */
 .badge{
   display:inline-block;
-  padding:4px 10px;
-  border-radius:20px;
+  padding:5px 12px;
   background:#1e40af;
-  font-size:12px;
-  margin-top:10px;
+  border-radius:20px;
+  font-size:11px;
+  margin-top:5px;
 }
 
 </style>
@@ -75,33 +109,51 @@ button{
 
 <body>
 
-<h2>🤖 AI Smart Farm (Explainable AI)</h2>
+<div class="header">🤖 Smart Farm AI Dashboard</div>
 
-<button class="connect" onclick="connectUSB()">Connect USB</button>
-
+<div style="text-align:center;">
+<button class="connect" onclick="connectUSB()">🔌 Connect USB</button>
 <br>
+<span class="badge" id="mode">AUTO AI READY</span>
+</div>
 
-<button onclick="send('PUMP_ON')">Pump</button>
-<button onclick="send('FAN_ON')">Fan</button>
-<button onclick="send('LIGHT_ON')">Light</button>
+<div class="buttons">
+<button id="pump" class="off" onclick="toggle('PUMP_ON','PUMP_OFF','pump')">💧 Pump</button>
+<button id="fan" class="off" onclick="toggle('FAN_ON','FAN_OFF','fan')">🌬 Fan</button>
+<button id="light" class="off" onclick="toggle('LIGHT_ON','LIGHT_OFF','light')">💡 Light</button>
+</div>
 
-<div class="aiBox" id="ai">AI: waiting sensor...</div>
-<div class="reason" id="reason">reason: -</div>
-
-<div class="badge" id="mode">AI MODE: ACTIVE</div>
+<div class="aiBox" id="ai">AI: waiting sensor data...</div>
+<div class="reason" id="reason">---</div>
 
 <div class="grid">
 
-  <div class="card">🌡 Temp <div class="value" id="t">--</div></div>
-  <div class="card">💧 Hum <div class="value" id="h">--</div></div>
-  <div class="card">🌱 Soil <div class="value" id="s">--</div></div>
-  <div class="card">💡 Light <div class="value" id="l">--</div></div>
+<div class="card">
+<div class="label">🌡 Temperature</div>
+<div class="value" id="t">--</div>
+</div>
+
+<div class="card">
+<div class="label">💧 Humidity</div>
+<div class="value" id="h">--</div>
+</div>
+
+<div class="card">
+<div class="label">🌱 Soil Moisture</div>
+<div class="value" id="s">--</div>
+</div>
+
+<div class="card">
+<div class="label">💡 Light</div>
+<div class="value" id="l">--</div>
+</div>
 
 </div>
 
 <script>
 
 let port, writer;
+let state = {pump:0,fan:0,light:0};
 
 // ===== CONNECT =====
 async function connectUSB(){
@@ -117,39 +169,44 @@ async function send(cmd){
   await writer.write(new TextEncoder().encode(cmd+"\n"));
 }
 
-// ===== AI EXPLAIN =================
-function aiExplain(t,soil,lux){
+// ===== TOGGLE =====
+function toggle(on,off,key){
 
-  let action = "STABLE";
-  let reason = "All values normal";
+  state[key] = !state[key];
 
-  // 🌱 SOIL
-  if(soil < 30){
-    action = "PUMP ON";
-    reason = "Soil moisture low → plant needs water";
-  }
-  else if(soil > 60){
-    action = "PUMP OFF";
-    reason = "Soil moisture enough → stop watering";
-  }
+  send(state[key] ? on : off);
 
-  // 🌡 TEMP override
-  if(t > 35){
-    action = "FAN ON";
-    reason = "Temperature high → cooling needed to protect plant";
-  }
+  document.getElementById(key).className =
+    state[key] ? "btn on" : "btn off";
 
-  // 💡 LIGHT override
-  if(lux < 100){
-    action = "LIGHT ON";
-    reason = "Light too low → growth support needed";
-  }
-
-  document.getElementById("ai").innerText = "AI: " + action;
-  document.getElementById("reason").innerText = "Reason: " + reason;
+  document.getElementById("mode").innerText =
+    "MANUAL OVERRIDE (AI PAUSED)";
 }
 
-// ===== READ DATA =====
+// ===== AI EXPLAIN =====
+function ai(t,s,l){
+
+  let msg="AI: system stable";
+  let reason="All sensors normal";
+
+  if(s < 30){
+    msg="AI: PUMP ON";
+    reason="Soil is dry → watering required";
+  }
+  else if(t > 35){
+    msg="AI: FAN ON";
+    reason="Temperature high → cooling activated";
+  }
+  else if(l < 100){
+    msg="AI: LIGHT ON";
+    reason="Low light → plant growth support";
+  }
+
+  document.getElementById("ai").innerText = msg;
+  document.getElementById("reason").innerText = reason;
+}
+
+// ===== READ =====
 async function readLoop(){
 
   const r = port.readable.getReader();
@@ -178,7 +235,7 @@ async function readLoop(){
       document.getElementById("s").innerText=s;
       document.getElementById("l").innerText=lx;
 
-      aiExplain(t,s,lx);
+      ai(t,s,lx);
     }
   }
 }
