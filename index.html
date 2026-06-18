@@ -2,18 +2,17 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Farm Dashboard</title>
+<title>Smart Farm AI PRO</title>
 
 <style>
 
 body{
   margin:0;
   font-family:Arial;
-  background:linear-gradient(135deg,#0b1220,#1e293b);
+  background:radial-gradient(circle at top,#1e293b,#0b1220);
   color:white;
 }
 
-/* HEADER */
 .header{
   text-align:center;
   padding:20px;
@@ -21,39 +20,10 @@ body{
   font-weight:bold;
 }
 
-/* GRID */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:12px;
-  padding:15px;
-}
-
-/* CARD */
-.card{
-  background:rgba(255,255,255,0.06);
-  backdrop-filter:blur(10px);
-  padding:18px;
-  border-radius:16px;
-  box-shadow:0 0 10px rgba(0,0,0,0.4);
-  text-align:center;
-}
-
-.label{
-  font-size:13px;
-  opacity:0.7;
-}
-
-.value{
-  font-size:30px;
-  font-weight:bold;
-  margin-top:6px;
-}
-
-/* AI BOX */
+/* STATUS */
 .aiBox{
   text-align:center;
-  margin-top:10px;
+  margin:10px;
   color:#38bdf8;
   font-size:16px;
 }
@@ -64,108 +34,162 @@ body{
   opacity:0.8;
 }
 
-/* STATUS DOT */
-.dot{
-  width:10px;
-  height:10px;
-  border-radius:50%;
-  display:inline-block;
-  margin-right:6px;
+.conf{
+  text-align:center;
+  font-size:12px;
+  color:#a5f3fc;
 }
 
-.green{background:#22c55e;}
-.red{background:#ef4444;}
+/* CONTROL */
+.control{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin:15px;
+}
+
+.btn{
+  width:110px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.on{background:#22c55e;color:white;}
+.off{background:#ef4444;color:white;}
+
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+  padding:15px;
+}
+
+.card{
+  background:rgba(255,255,255,0.06);
+  padding:18px;
+  border-radius:16px;
+  text-align:center;
+  backdrop-filter:blur(10px);
+}
+
+.value{
+  font-size:30px;
+  font-weight:bold;
+}
+
+.label{
+  font-size:12px;
+  opacity:0.7;
+}
 
 </style>
 </head>
 
 <body>
 
-<div class="header">
-🤖 Smart Farm Dashboard (Vercel + ESP32)
-</div>
+<div class="header">🤖 Smart Farm AI PRO SYSTEM</div>
 
-<div class="aiBox" id="ai">
-🟡 AI: waiting data...
-</div>
+<div class="aiBox" id="ai">AI: loading...</div>
+<div class="reason" id="reason">---</div>
+<div class="conf" id="conf">confidence: --</div>
 
-<div class="reason" id="reason">
----
+<div class="control">
+<button class="btn off" id="pump" onclick="toggle('pump')">💧 Pump</button>
+<button class="btn off" id="fan" onclick="toggle('fan')">🌬 Fan</button>
+<button class="btn off" id="light" onclick="toggle('light')">💡 Light</button>
 </div>
 
 <div class="grid">
 
-  <div class="card">
-    🌡 Temperature
-    <div class="value" id="t">--</div>
-  </div>
-
-  <div class="card">
-    💧 Humidity
-    <div class="value" id="h">--</div>
-  </div>
-
-  <div class="card">
-    🌱 Soil
-    <div class="value" id="s">--</div>
-  </div>
-
-  <div class="card">
-    💡 Light
-    <div class="value" id="l">--</div>
-  </div>
+<div class="card"><div class="label">🌡 TEMP</div><div class="value" id="t">--</div></div>
+<div class="card"><div class="label">💧 HUM</div><div class="value" id="h">--</div></div>
+<div class="card"><div class="label">🌱 SOIL</div><div class="value" id="s">--</div></div>
+<div class="card"><div class="label">💡 LIGHT</div><div class="value" id="l">--</div></div>
 
 </div>
 
 <script>
 
-// ===== AI LOGIC =====
+let state = {pump:0,fan:0,light:0};
+
+// ===== AI (SMART + CONFIDENCE) =====
 function ai(t,s,l){
 
-  let msg="🟢 AI: stable";
-  let reason="All sensors normal";
+  let msg="STABLE 🌿";
+  let reason="All conditions normal";
+  let conf=95;
 
+  // 🌱 soil logic (main priority)
   if(s < 30){
-    msg="🌱 AI: Pump ON";
-    reason="Soil moisture low → watering needed";
+    msg="PUMP ON 💧";
+    reason="Soil dry → irrigation needed";
+    conf=92;
   }
-  else if(t > 35){
-    msg="🌡 AI: Fan ON";
-    reason="Temperature high → cooling required";
-  }
-  else if(l < 100){
-    msg="💡 AI: Light ON";
-    reason="Low light → growth support";
+  else if(s > 70){
+    msg="PUMP OFF 🚫";
+    reason="Soil enough moisture";
+    conf=90;
   }
 
-  document.getElementById("ai").innerText = msg;
-  document.getElementById("reason").innerText = reason;
+  // 🌡 temp override
+  if(t > 35){
+    msg="FAN ON 🌬";
+    reason="High temperature cooling required";
+    conf=96;
+  }
+
+  // 💡 light logic
+  if(l < 100){
+    msg="LIGHT ON 💡";
+    reason="Low light detected";
+    conf=88;
+  }
+
+  document.getElementById("ai").innerText="AI: "+msg;
+  document.getElementById("reason").innerText=reason;
+  document.getElementById("conf").innerText="Confidence: "+conf+"%";
 }
 
-// ===== FETCH DATA =====
-async function loadData(){
+// ===== LOAD SENSOR =====
+async function load(){
 
-  try{
+  const r = await fetch("/api/sensor");
+  const d = await r.json();
 
-    const res = await fetch("/api/sensor");
-    const d = await res.json();
+  const data = d.data;
 
-    const data = d.data;
+  document.getElementById("t").innerText=data.temp.toFixed(1);
+  document.getElementById("h").innerText=data.hum.toFixed(1);
+  document.getElementById("s").innerText=data.soil;
+  document.getElementById("l").innerText=data.light;
 
-    document.getElementById("t").innerText = data.temp.toFixed(1);
-    document.getElementById("h").innerText = data.hum.toFixed(1);
-    document.getElementById("s").innerText = data.soil;
-    document.getElementById("l").innerText = data.light;
-
-    ai(data.temp, data.soil, data.light);
-
-  }catch(e){
-    console.log("no data");
-  }
+  ai(data.temp,data.soil,data.light);
 }
 
-// ===== LOOP =====
-setInterval(loadData, 1500);
+// ===== CONTROL =====
+async function toggle(device){
+
+  state[device] = !state[device];
+
+  await fetch("/api/control",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      device,
+      value:state[device]?1:0
+    })
+  });
+
+  document.getElementById(device).className =
+    state[device] ? "btn on" : "btn off";
+}
+
+// LOOP
+setInterval(load,1200);
 
 </script>
 
