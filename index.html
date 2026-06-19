@@ -1,294 +1,121 @@
 <!DOCTYPE html>
-
-<html lang="th">
+<html>
 <head>
-
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>🌱 Smart Farm AI Pro</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+<title>Smart Farm Mobile</title>
 
 <style>
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:'Kanit',sans-serif;
-}
-
 body{
-background:#0f172a;
-color:white;
-min-height:100vh;
-padding:15px;
+  margin:0;
+  font-family:Arial;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  color:white;
 }
 
+/* Header */
 .header{
-text-align:center;
-padding:20px;
-background:#111827;
-border-radius:20px;
-margin-bottom:15px;
-box-shadow:0 0 25px rgba(0,0,0,.3);
+  text-align:center;
+  padding:15px;
+  font-size:22px;
+  font-weight:bold;
 }
 
-.title{
-font-size:30px;
-font-weight:600;
-}
-
-.status{
-margin-top:10px;
-font-size:15px;
-}
-
-.online{
-color:#22c55e;
-}
-
-.offline{
-color:#ef4444;
-}
-
+/* Grid (มือถือ = 1 คอลัมน์) */
 .grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-gap:12px;
-margin-bottom:15px;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+  padding:15px;
 }
 
+/* Card */
 .card{
-background:#1e293b;
-padding:18px;
-border-radius:20px;
-text-align:center;
-box-shadow:0 0 15px rgba(0,0,0,.25);
+  background:rgba(255,255,255,0.1);
+  backdrop-filter:blur(10px);
+  padding:15px;
+  border-radius:15px;
+  text-align:center;
+  box-shadow:0 5px 15px rgba(0,0,0,0.3);
 }
 
-.card .icon{
-font-size:28px;
+.value{
+  font-size:26px;
+  color:#38bdf8;
+  margin-top:5px;
 }
 
-.card .label{
-opacity:.8;
-margin-top:8px;
-}
-
-.card .value{
-font-size:32px;
-font-weight:bold;
-margin-top:10px;
-}
-
-.ai-box{
-background:#1e293b;
-padding:20px;
-border-radius:20px;
-margin-bottom:15px;
-}
-
-.ai-title{
-font-size:24px;
-color:#38bdf8;
-}
-
-.reason{
-margin-top:10px;
-font-size:15px;
-color:#cbd5e1;
-}
-
-.mode-box{
-background:#1e293b;
-padding:20px;
-border-radius:20px;
-margin-bottom:15px;
-}
-
-.mode-btn{
-width:100%;
-padding:14px;
-border:none;
-border-radius:14px;
-font-size:16px;
-font-weight:bold;
-cursor:pointer;
-color:white;
-}
-
-.auto{
-background:#22c55e;
-}
-
-.manual{
-background:#f59e0b;
-}
-
-.control-grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-gap:10px;
-margin-bottom:15px;
-}
-
+/* Buttons */
 .btn{
-border:none;
-padding:18px;
-border-radius:18px;
-font-size:17px;
-font-weight:bold;
-cursor:pointer;
-color:white;
-transition:.2s;
+  width:90%;
+  padding:15px;
+  margin:5px auto;
+  display:block;
+  border:none;
+  border-radius:12px;
+  font-size:16px;
+  font-weight:bold;
 }
 
-.btn:active{
-transform:scale(.95);
-}
+.on{ background:#22c55e; color:white; }
+.off{ background:#ef4444; color:white; }
 
-.on{
-background:#22c55e;
+.control{
+  text-align:center;
+  padding:10px;
 }
-
-.off{
-background:#ef4444;
-}
-
-.history{
-background:#1e293b;
-padding:20px;
-border-radius:20px;
-margin-bottom:15px;
-}
-
-.footer{
-text-align:center;
-opacity:.7;
-padding:10px;
-}
-
-canvas{
-background:white;
-border-radius:15px;
-padding:10px;
-}
-
 </style>
-
 </head>
 
 <body>
 
-<div class="header">
-
-<div class="title">
-🌱 Smart Farm AI Pro
-</div>
-
-<div id="wifi" class="status online">
-🟢 Online
-</div>
-
-</div>
+<div class="header">🌱 Smart Farm Mobile</div>
 
 <div class="grid">
-
-<div class="card">
-<div class="icon">🌡</div>
-<div class="label">Temperature</div>
-<div id="temp" class="value">--</div>
+  <div class="card">🌡 Temp <div class="value" id="temp">0</div></div>
+  <div class="card">💧 Hum <div class="value" id="hum">0</div></div>
+  <div class="card">🌱 Soil <div class="value" id="soil">0</div></div>
+  <div class="card">☀ Light <div class="value" id="light">0</div></div>
 </div>
 
-<div class="card">
-<div class="icon">💧</div>
-<div class="label">Humidity</div>
-<div id="hum" class="value">--</div>
-</div>
+<div class="control">
 
-<div class="card">
-<div class="icon">🌱</div>
-<div class="label">Soil</div>
-<div id="soil" class="value">--</div>
-</div>
+<h3>Control</h3>
 
-<div class="card">
-<div class="icon">☀</div>
-<div class="label">Light</div>
-<div id="lux" class="value">--</div>
-</div>
+<button class="btn on" onclick="cmd('water1')">💧 เปิดน้ำ</button>
+<button class="btn off" onclick="cmd('water0')">ปิดน้ำ</button>
+
+<button class="btn on" onclick="cmd('light1')">💡 เปิดไฟ</button>
+<button class="btn off" onclick="cmd('light0')">ปิดไฟ</button>
+
+<button class="btn on" onclick="cmd('fan1')">🌬 เปิดพัดลม</button>
+<button class="btn off" onclick="cmd('fan0')">ปิดพัดลม</button>
 
 </div>
 
-<div class="ai-box">
+<script>
 
-<div class="ai-title">
-🤖 AI Analysis
-</div>
+const server = "http://192.168.1.25"; // ใส่ IP ESP32
 
-<div id="reason" class="reason">
-Waiting...
-</div>
+function loadData(){
+  fetch(server + "/data")
+  .then(r => r.json())
+  .then(d => {
+    document.getElementById("temp").innerText = d.temp;
+    document.getElementById("hum").innerText = d.hum;
+    document.getElementById("soil").innerText = d.soil;
+    document.getElementById("light").innerText = d.light;
+  });
+}
 
-</div>
+function cmd(c){
+  fetch(server + "/cmd?c=" + c);
+}
 
-<div class="mode-box">
+setInterval(loadData, 2000);
 
-<button id="modeBtn"
-class="mode-btn auto">
-
-AUTO MODE
-
-</button>
-
-</div>
-
-<div class="control-grid">
-
-<button id="pumpBtn"
-class="btn off">
-
-💧 Pump OFF
-
-</button>
-
-<button id="fanBtn"
-class="btn off">
-
-🌬 Fan OFF
-
-</button>
-
-<button id="lightBtn"
-class="btn off">
-
-💡 Light OFF
-
-</button>
-
-</div>
-
-<div class="history">
-
-<h2>📈 History</h2>
-
-<br>
-
-<canvas id="chart"></canvas>
-
-</div>
-
-<div class="footer">
-
-Last Update: <span id="time">--</span>
-
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script src="app.js"></script>
+</script>
 
 </body>
 </html>
