@@ -7,12 +7,20 @@ let data = {
 
 export default function handler(req, res) {
 
-  if(req.method === "POST"){
-    data = req.body;
-    return res.json({ok:true});
+  // 📥 ESP32 ส่งข้อมูลมา
+  if (req.method === "POST") {
+    try {
+      data = req.body;
+      return res.status(200).json({ ok: true, data });
+    } catch (err) {
+      return res.status(500).json({ error: "Invalid data" });
+    }
   }
 
-  if(req.method === "GET"){
-    return res.json(data);
+  // 📤 เว็บดึงข้อมูล
+  if (req.method === "GET") {
+    return res.status(200).json(data);
   }
+
+  return res.status(405).json({ error: "Method not allowed" });
 }
