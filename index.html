@@ -4,96 +4,146 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Smart Farm Toggle</title>
+<title>Smart Farm Pro UI</title>
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:linear-gradient(135deg,#0f172a,#1e293b);
+  font-family: 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at top,#1e293b,#0f172a);
   color:white;
-  text-align:center;
+  overflow-x:hidden;
 }
 
+/* ===== HEADER ===== */
 .header{
-  padding:15px;
-  font-size:22px;
+  text-align:center;
+  padding:20px;
+  font-size:26px;
   font-weight:bold;
+  letter-spacing:1px;
 }
 
-.card{
-  margin:10px;
+/* ===== GRID ===== */
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
   padding:15px;
-  background:rgba(255,255,255,0.1);
-  border-radius:15px;
+}
+
+/* ===== CARD ===== */
+.card{
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius:20px;
+  padding:20px;
+  text-align:center;
+  box-shadow:0 0 20px rgba(0,0,0,0.4);
+  transition:0.3s;
+}
+
+.card:hover{
+  transform: scale(1.05);
+  box-shadow:0 0 25px #38bdf8;
 }
 
 .value{
-  font-size:26px;
+  font-size:28px;
+  margin-top:10px;
   color:#38bdf8;
+  transition:0.3s;
 }
 
+/* ===== BUTTON ===== */
 .btn{
-  width:80%;
-  padding:18px;
-  margin:10px;
+  width:85%;
+  padding:16px;
+  margin:10px auto;
+  display:block;
   border:none;
-  border-radius:12px;
-  font-size:18px;
+  border-radius:15px;
+  font-size:16px;
   font-weight:bold;
   cursor:pointer;
+  transition:0.3s;
 }
 
 .on{
-  background:#22c55e;
+  background: linear-gradient(45deg,#22c55e,#16a34a);
   color:white;
+  box-shadow:0 0 15px #22c55e;
 }
 
 .off{
-  background:#ef4444;
+  background: linear-gradient(45deg,#ef4444,#b91c1c);
   color:white;
+  box-shadow:0 0 15px #ef4444;
+}
+
+/* ===== PANEL ===== */
+.panel{
+  text-align:center;
+  padding:10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">🌱 Smart Farm Toggle</div>
+<div class="header">🌱 Smart Farm PRO Dashboard</div>
 
-<div class="card">🌡 Temp <div class="value" id="temp">0</div></div>
-<div class="card">💧 Hum <div class="value" id="hum">0</div></div>
-<div class="card">🌱 Soil <div class="value" id="soil">0</div></div>
-<div class="card">☀ Light <div class="value" id="light">0</div></div>
+<div class="grid">
+  <div class="card">🌡 TEMP<div class="value" id="temp">0</div></div>
+  <div class="card">💧 HUM<div class="value" id="hum">0</div></div>
+  <div class="card">🌱 SOIL<div class="value" id="soil">0</div></div>
+  <div class="card">☀ LIGHT<div class="value" id="light">0</div></div>
+</div>
 
-<!-- ===== TOGGLE BUTTON ===== -->
+<div class="panel">
+
 <button id="waterBtn" class="btn off" onclick="toggle('water')">💧 WATER OFF</button>
 <button id="lightBtn" class="btn off" onclick="toggle('light')">💡 LIGHT OFF</button>
 <button id="fanBtn" class="btn off" onclick="toggle('fan')">🌬 FAN OFF</button>
+
+</div>
 
 <script>
 
 const server = "http://192.168.1.25";
 
-// สถานะปุ่ม
 let state = {
-  water: 0,
-  light: 0,
-  fan: 0
+  water:0,
+  light:0,
+  fan:0
 };
 
-// ===== โหลดข้อมูล =====
+// ===== LIVE DATA =====
 function loadData(){
   fetch(server + "/data")
   .then(r => r.json())
   .then(d => {
-    document.getElementById("temp").innerText = d.temp;
-    document.getElementById("hum").innerText = d.hum;
-    document.getElementById("soil").innerText = d.soil;
-    document.getElementById("light").innerText = d.light;
+
+    animate("temp", d.temp);
+    animate("hum", d.hum);
+    animate("soil", d.soil);
+    animate("light", d.light);
+
   });
 }
 
-// ===== Toggle =====
+// ===== ANIMATION =====
+function animate(id, value){
+  let el = document.getElementById(id);
+  el.style.opacity = 0.3;
+  setTimeout(()=>{
+    el.innerText = value;
+    el.style.opacity = 1;
+  },200);
+}
+
+// ===== TOGGLE =====
 function toggle(type){
 
   state[type] = state[type] ? 0 : 1;
@@ -102,7 +152,7 @@ function toggle(type){
 
   let btn = document.getElementById(type + "Btn");
 
-  if(state[type] == 1){
+  if(state[type]){
     btn.className = "btn on";
     btn.innerText = "✔ " + type.toUpperCase() + " ON";
   }else{
@@ -111,7 +161,7 @@ function toggle(type){
   }
 }
 
-setInterval(loadData, 2000);
+setInterval(loadData,2000);
 
 </script>
 
