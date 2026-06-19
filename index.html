@@ -1,169 +1,158 @@
+String html = R"rawliteral(
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Smart Farm Pro UI</title>
+<title>Smart Farm</title>
 
 <style>
 body{
   margin:0;
-  font-family: 'Segoe UI', sans-serif;
-  background: radial-gradient(circle at top,#1e293b,#0f172a);
+  font-family: 'Arial';
+  background: linear-gradient(135deg,#0f172a,#1e293b);
   color:white;
-  overflow-x:hidden;
 }
 
-/* ===== HEADER ===== */
+/* HEADER */
 .header{
   text-align:center;
-  padding:20px;
-  font-size:26px;
+  padding:18px;
+  font-size:22px;
   font-weight:bold;
   letter-spacing:1px;
 }
 
-/* ===== GRID ===== */
+/* GRID */
 .grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:15px;
-  padding:15px;
+  gap:12px;
+  padding:12px;
 }
 
-/* ===== CARD ===== */
+/* CARD */
 .card{
   background: rgba(255,255,255,0.08);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius:20px;
-  padding:20px;
+  border-radius:18px;
+  padding:18px;
   text-align:center;
-  box-shadow:0 0 20px rgba(0,0,0,0.4);
-  transition:0.3s;
+  box-shadow:0 8px 20px rgba(0,0,0,0.3);
+  transition:0.2s;
 }
 
-.card:hover{
-  transform: scale(1.05);
-  box-shadow:0 0 25px #38bdf8;
+.card:active{
+  transform:scale(0.96);
+}
+
+.title{
+  font-size:14px;
+  opacity:0.8;
 }
 
 .value{
-  font-size:28px;
-  margin-top:10px;
+  font-size:26px;
+  margin-top:6px;
   color:#38bdf8;
-  transition:0.3s;
 }
 
-/* ===== BUTTON ===== */
+/* BUTTON */
 .btn{
-  width:85%;
+  width:90%;
   padding:16px;
-  margin:10px auto;
+  margin:8px auto;
   display:block;
   border:none;
-  border-radius:15px;
+  border-radius:14px;
   font-size:16px;
   font-weight:bold;
-  cursor:pointer;
-  transition:0.3s;
+  transition:0.2s;
+}
+
+.btn:active{
+  transform:scale(0.95);
 }
 
 .on{
   background: linear-gradient(45deg,#22c55e,#16a34a);
   color:white;
-  box-shadow:0 0 15px #22c55e;
+  box-shadow:0 0 15px rgba(34,197,94,0.5);
 }
 
 .off{
   background: linear-gradient(45deg,#ef4444,#b91c1c);
   color:white;
-  box-shadow:0 0 15px #ef4444;
+  box-shadow:0 0 15px rgba(239,68,68,0.5);
 }
 
-/* ===== PANEL ===== */
-.panel{
+/* FOOT */
+.footer{
   text-align:center;
   padding:10px;
+  opacity:0.6;
+  font-size:12px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">🌱 Smart Farm PRO Dashboard</div>
+<div class="header">🌱 SMART FARM CONTROL</div>
 
 <div class="grid">
-  <div class="card">🌡 TEMP<div class="value" id="temp">0</div></div>
-  <div class="card">💧 HUM<div class="value" id="hum">0</div></div>
-  <div class="card">🌱 SOIL<div class="value" id="soil">0</div></div>
-  <div class="card">☀ LIGHT<div class="value" id="light">0</div></div>
+  <div class="card">
+    <div class="title">🌡 TEMP</div>
+    <div class="value" id="t">0</div>
+  </div>
+
+  <div class="card">
+    <div class="title">💧 HUM</div>
+    <div class="value" id="h">0</div>
+  </div>
+
+  <div class="card">
+    <div class="title">🌱 SOIL</div>
+    <div class="value" id="s">0</div>
+  </div>
+
+  <div class="card">
+    <div class="title">☀ LIGHT</div>
+    <div class="value" id="l">0</div>
+  </div>
 </div>
 
-<div class="panel">
+<!-- CONTROL -->
+<button class="btn on" onclick="cmd('water1')">💧 เปิดน้ำ</button>
+<button class="btn off" onclick="cmd('water0')">ปิดน้ำ</button>
 
-<button id="waterBtn" class="btn off" onclick="toggle('water')">💧 WATER OFF</button>
-<button id="lightBtn" class="btn off" onclick="toggle('light')">💡 LIGHT OFF</button>
-<button id="fanBtn" class="btn off" onclick="toggle('fan')">🌬 FAN OFF</button>
+<button class="btn on" onclick="cmd('light1')">💡 เปิดไฟ</button>
+<button class="btn off" onclick="cmd('light0')">ปิดไฟ</button>
 
-</div>
+<button class="btn on" onclick="cmd('fan1')">🌬 เปิดพัดลม</button>
+<button class="btn off" onclick="cmd('fan0')">ปิดพัดลม</button>
+
+<div class="footer">ESP32 Smart Farm • Mobile UI</div>
 
 <script>
 
-const server = "http://192.168.1.25";
-
-let state = {
-  water:0,
-  light:0,
-  fan:0
-};
-
-// ===== LIVE DATA =====
-function loadData(){
-  fetch(server + "/data")
-  .then(r => r.json())
-  .then(d => {
-
-    animate("temp", d.temp);
-    animate("hum", d.hum);
-    animate("soil", d.soil);
-    animate("light", d.light);
-
+setInterval(()=>{
+  fetch('/data')
+  .then(r=>r.json())
+  .then(d=>{
+    document.getElementById('t').innerText = d.temp;
+    document.getElementById('h').innerText = d.hum;
+    document.getElementById('s').innerText = d.soil;
+    document.getElementById('l').innerText = d.light;
   });
+},2000);
+
+function cmd(c){
+  fetch('/cmd?c='+c);
 }
-
-// ===== ANIMATION =====
-function animate(id, value){
-  let el = document.getElementById(id);
-  el.style.opacity = 0.3;
-  setTimeout(()=>{
-    el.innerText = value;
-    el.style.opacity = 1;
-  },200);
-}
-
-// ===== TOGGLE =====
-function toggle(type){
-
-  state[type] = state[type] ? 0 : 1;
-
-  fetch(server + "/cmd?c=" + type + state[type]);
-
-  let btn = document.getElementById(type + "Btn");
-
-  if(state[type]){
-    btn.className = "btn on";
-    btn.innerText = "✔ " + type.toUpperCase() + " ON";
-  }else{
-    btn.className = "btn off";
-    btn.innerText = "✖ " + type.toUpperCase() + " OFF";
-  }
-}
-
-setInterval(loadData,2000);
 
 </script>
 
 </body>
 </html>
+)rawliteral";
