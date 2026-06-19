@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Smart Farm Mobile</title>
+<title>Smart Farm Toggle</title>
 
 <style>
 body{
@@ -12,92 +12,76 @@ body{
   font-family:Arial;
   background:linear-gradient(135deg,#0f172a,#1e293b);
   color:white;
+  text-align:center;
 }
 
-/* Header */
 .header{
-  text-align:center;
   padding:15px;
   font-size:22px;
   font-weight:bold;
 }
 
-/* Grid (มือถือ = 1 คอลัมน์) */
-.grid{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:12px;
-  padding:15px;
-}
-
-/* Card */
 .card{
-  background:rgba(255,255,255,0.1);
-  backdrop-filter:blur(10px);
+  margin:10px;
   padding:15px;
+  background:rgba(255,255,255,0.1);
   border-radius:15px;
-  text-align:center;
-  box-shadow:0 5px 15px rgba(0,0,0,0.3);
 }
 
 .value{
   font-size:26px;
   color:#38bdf8;
-  margin-top:5px;
 }
 
-/* Buttons */
 .btn{
-  width:90%;
-  padding:15px;
-  margin:5px auto;
-  display:block;
+  width:80%;
+  padding:18px;
+  margin:10px;
   border:none;
   border-radius:12px;
-  font-size:16px;
+  font-size:18px;
   font-weight:bold;
+  cursor:pointer;
 }
 
-.on{ background:#22c55e; color:white; }
-.off{ background:#ef4444; color:white; }
+.on{
+  background:#22c55e;
+  color:white;
+}
 
-.control{
-  text-align:center;
-  padding:10px;
+.off{
+  background:#ef4444;
+  color:white;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">🌱 Smart Farm Mobile</div>
+<div class="header">🌱 Smart Farm Toggle</div>
 
-<div class="grid">
-  <div class="card">🌡 Temp <div class="value" id="temp">0</div></div>
-  <div class="card">💧 Hum <div class="value" id="hum">0</div></div>
-  <div class="card">🌱 Soil <div class="value" id="soil">0</div></div>
-  <div class="card">☀ Light <div class="value" id="light">0</div></div>
-</div>
+<div class="card">🌡 Temp <div class="value" id="temp">0</div></div>
+<div class="card">💧 Hum <div class="value" id="hum">0</div></div>
+<div class="card">🌱 Soil <div class="value" id="soil">0</div></div>
+<div class="card">☀ Light <div class="value" id="light">0</div></div>
 
-<div class="control">
-
-<h3>Control</h3>
-
-<button class="btn on" onclick="cmd('water1')">💧 เปิดน้ำ</button>
-<button class="btn off" onclick="cmd('water0')">ปิดน้ำ</button>
-
-<button class="btn on" onclick="cmd('light1')">💡 เปิดไฟ</button>
-<button class="btn off" onclick="cmd('light0')">ปิดไฟ</button>
-
-<button class="btn on" onclick="cmd('fan1')">🌬 เปิดพัดลม</button>
-<button class="btn off" onclick="cmd('fan0')">ปิดพัดลม</button>
-
-</div>
+<!-- ===== TOGGLE BUTTON ===== -->
+<button id="waterBtn" class="btn off" onclick="toggle('water')">💧 WATER OFF</button>
+<button id="lightBtn" class="btn off" onclick="toggle('light')">💡 LIGHT OFF</button>
+<button id="fanBtn" class="btn off" onclick="toggle('fan')">🌬 FAN OFF</button>
 
 <script>
 
-const server = "http://192.168.1.25"; // ใส่ IP ESP32
+const server = "http://192.168.1.25";
 
+// สถานะปุ่ม
+let state = {
+  water: 0,
+  light: 0,
+  fan: 0
+};
+
+// ===== โหลดข้อมูล =====
 function loadData(){
   fetch(server + "/data")
   .then(r => r.json())
@@ -109,8 +93,22 @@ function loadData(){
   });
 }
 
-function cmd(c){
-  fetch(server + "/cmd?c=" + c);
+// ===== Toggle =====
+function toggle(type){
+
+  state[type] = state[type] ? 0 : 1;
+
+  fetch(server + "/cmd?c=" + type + state[type]);
+
+  let btn = document.getElementById(type + "Btn");
+
+  if(state[type] == 1){
+    btn.className = "btn on";
+    btn.innerText = "✔ " + type.toUpperCase() + " ON";
+  }else{
+    btn.className = "btn off";
+    btn.innerText = "✖ " + type.toUpperCase() + " OFF";
+  }
 }
 
 setInterval(loadData, 2000);
