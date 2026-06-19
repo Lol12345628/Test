@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Farm PRO</title>
+<title>Smart Farm Toggle</title>
 
 <style>
 body{
@@ -10,29 +10,21 @@ body{
   font-family:Arial;
   background:linear-gradient(135deg,#0f172a,#1e293b);
   color:white;
+  text-align:center;
 }
 
 .header{
-  text-align:center;
-  padding:18px;
+  padding:20px;
   font-size:22px;
   font-weight:bold;
 }
 
-/* GRID */
-.grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  padding:10px;
-}
-
+/* CARD */
 .card{
-  background:rgba(255,255,255,0.08);
-  border-radius:16px;
+  margin:10px;
   padding:15px;
-  text-align:center;
-  backdrop-filter:blur(10px);
+  background:rgba(255,255,255,0.08);
+  border-radius:15px;
 }
 
 .value{
@@ -40,52 +32,71 @@ body{
   color:#38bdf8;
 }
 
-/* BUTTON */
-.btn{
-  width:90%;
-  padding:15px;
-  margin:8px auto;
-  display:block;
+/* TOGGLE BUTTON */
+.toggle{
+  width:85%;
+  padding:18px;
+  margin:12px auto;
   border:none;
-  border-radius:14px;
-  font-size:16px;
+  border-radius:16px;
+  font-size:18px;
   font-weight:bold;
-  transition:0.2s;
+  cursor:pointer;
+  transition:0.3s;
 }
 
-.on{background:#22c55e;color:white;}
-.off{background:#ef4444;color:white;}
+/* ON */
+.on{
+  background:linear-gradient(45deg,#22c55e,#16a34a);
+  color:white;
+  box-shadow:0 0 15px #22c55e;
+}
+
+/* OFF */
+.off{
+  background:linear-gradient(45deg,#ef4444,#b91c1c);
+  color:white;
+  box-shadow:0 0 15px #ef4444;
+}
 </style>
 </head>
 
 <body>
 
-<div class="header">🌱 SMART FARM DASHBOARD</div>
+<div class="header">🌱 SMART FARM TOGGLE</div>
 
-<div class="grid">
-  <div class="card">🌡 TEMP<div class="value" id="t">0</div></div>
-  <div class="card">💧 HUM<div class="value" id="h">0</div></div>
-  <div class="card">🌱 SOIL<div class="value" id="s">0</div></div>
-  <div class="card">☀ LIGHT<div class="value" id="l">0</div></div>
-</div>
+<div class="card">🌡 TEMP <div class="value" id="t">0</div></div>
+<div class="card">💧 HUM <div class="value" id="h">0</div></div>
+<div class="card">🌱 SOIL <div class="value" id="s">0</div></div>
+<div class="card">☀ LIGHT <div class="value" id="l">0</div></div>
 
-<!-- CONTROL (ปุ่มเดียวจบ) -->
-<button class="btn on" onclick="cmd('water1')">💧 เปิดน้ำ</button>
-<button class="btn off" onclick="cmd('water0')">ปิดน้ำ</button>
+<!-- TOGGLE BUTTONS -->
+<button id="waterBtn" class="toggle off" onclick="toggle('water')">
+💧 WATER OFF
+</button>
 
-<button class="btn on" onclick="cmd('light1')">💡 เปิดไฟ</button>
-<button class="btn off" onclick="cmd('light0')">ปิดไฟ</button>
+<button id="lightBtn" class="toggle off" onclick="toggle('light')">
+💡 LIGHT OFF
+</button>
 
-<button class="btn on" onclick="cmd('fan1')">🌬 เปิดพัดลม</button>
-<button class="btn off" onclick="cmd('fan0')">ปิดพัดลม</button>
+<button id="fanBtn" class="toggle off" onclick="toggle('fan')">
+🌬 FAN OFF
+</button>
 
 <script>
 
-const server = "https://test-lilac-one.vercel.app/api/sensor";
+const server = "https://test-lilac-one.vercel.app/api";
+
+// สถานะ
+let state = {
+  water:0,
+  light:0,
+  fan:0
+};
 
 // ===== โหลดข้อมูล =====
 function load(){
-  fetch(server)
+  fetch(server + "/sensor")
   .then(r=>r.json())
   .then(d=>{
     document.getElementById("t").innerText = d.temp;
@@ -95,9 +106,22 @@ function load(){
   });
 }
 
-// ===== ส่งคำสั่ง =====
-function cmd(c){
-  fetch("/api/control?cmd=" + c);
+// ===== TOGGLE =====
+function toggle(type){
+
+  state[type] = state[type] ? 0 : 1;
+
+  fetch(server + "/control?cmd=" + type + state[type]);
+
+  let btn = document.getElementById(type + "Btn");
+
+  if(state[type] == 1){
+    btn.className = "toggle on";
+    btn.innerText = "✔ " + type.toUpperCase() + " ON";
+  }else{
+    btn.className = "toggle off";
+    btn.innerText = "✖ " + type.toUpperCase() + " OFF";
+  }
 }
 
 setInterval(load,2000);
