@@ -2,7 +2,6 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta charset="UTF-8">
 <title>Smart Farm PRO</title>
 
 <style>
@@ -11,108 +10,97 @@ body{
   font-family:Arial;
   background:linear-gradient(135deg,#0f172a,#1e293b);
   color:white;
-  text-align:center;
 }
 
 .header{
-  padding:15px;
+  text-align:center;
+  padding:18px;
   font-size:22px;
   font-weight:bold;
 }
 
-/* CARD */
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  padding:10px;
+}
+
 .card{
   background:rgba(255,255,255,0.08);
-  margin:10px;
+  border-radius:16px;
   padding:15px;
-  border-radius:15px;
+  text-align:center;
+  backdrop-filter:blur(10px);
 }
 
 .value{
-  font-size:26px;
+  font-size:24px;
   color:#38bdf8;
 }
 
-/* TOGGLE BUTTON */
-.toggle{
-  width:85%;
-  padding:18px;
-  margin:10px auto;
+/* BUTTON */
+.btn{
+  width:90%;
+  padding:15px;
+  margin:8px auto;
+  display:block;
   border:none;
-  border-radius:15px;
+  border-radius:14px;
   font-size:16px;
   font-weight:bold;
-  cursor:pointer;
-  transition:0.3s;
+  transition:0.2s;
 }
 
-/* ON */
-.on{
-  background:linear-gradient(45deg,#22c55e,#16a34a);
-  box-shadow:0 0 15px #22c55e;
-  color:white;
-}
-
-/* OFF */
-.off{
-  background:linear-gradient(45deg,#ef4444,#b91c1c);
-  box-shadow:0 0 15px #ef4444;
-  color:white;
-}
+.on{background:#22c55e;color:white;}
+.off{background:#ef4444;color:white;}
 </style>
 </head>
 
 <body>
 
-<div class="header">🌱 SMART FARM TOGGLE</div>
+<div class="header">🌱 SMART FARM DASHBOARD</div>
 
-<div class="card">🌡 TEMP <div class="value" id="t">0</div></div>
-<div class="card">💧 HUM <div class="value" id="h">0</div></div>
-<div class="card">🌱 SOIL <div class="value" id="s">0</div></div>
-<div class="card">☀ LIGHT <div class="value" id="l">0</div></div>
+<div class="grid">
+  <div class="card">🌡 TEMP<div class="value" id="t">0</div></div>
+  <div class="card">💧 HUM<div class="value" id="h">0</div></div>
+  <div class="card">🌱 SOIL<div class="value" id="s">0</div></div>
+  <div class="card">☀ LIGHT<div class="value" id="l">0</div></div>
+</div>
 
-<!-- TOGGLE BUTTONS -->
-<button id="waterBtn" class="toggle off" onclick="toggle('water')">💧 WATER OFF</button>
-<button id="lightBtn" class="toggle off" onclick="toggle('light')">💡 LIGHT OFF</button>
-<button id="fanBtn" class="toggle off" onclick="toggle('fan')">🌬 FAN OFF</button>
+<!-- CONTROL (ปุ่มเดียวจบ) -->
+<button class="btn on" onclick="cmd('water1')">💧 เปิดน้ำ</button>
+<button class="btn off" onclick="cmd('water0')">ปิดน้ำ</button>
+
+<button class="btn on" onclick="cmd('light1')">💡 เปิดไฟ</button>
+<button class="btn off" onclick="cmd('light0')">ปิดไฟ</button>
+
+<button class="btn on" onclick="cmd('fan1')">🌬 เปิดพัดลม</button>
+<button class="btn off" onclick="cmd('fan0')">ปิดพัดลม</button>
 
 <script>
 
-let state = {
-  water:0,
-  light:0,
-  fan:0
-};
+const server = "https://test-lilac-one.vercel.app/api/sensor";
 
-// ===== SENSOR =====
-setInterval(()=>{
-  fetch('/data')
+// ===== โหลดข้อมูล =====
+function load(){
+  fetch(server)
   .then(r=>r.json())
   .then(d=>{
-    document.getElementById('t').innerText = d.temp;
-    document.getElementById('h').innerText = d.hum;
-    document.getElementById('s').innerText = d.soil;
-    document.getElementById('l').innerText = d.light;
+    document.getElementById("t").innerText = d.temp;
+    document.getElementById("h").innerText = d.hum;
+    document.getElementById("s").innerText = d.soil;
+    document.getElementById("l").innerText = d.light;
   });
-},2000);
-
-// ===== TOGGLE =====
-function toggle(type){
-
-  state[type] = state[type] ? 0 : 1;
-
-  fetch('/cmd?c=' + type + state[type]);
-
-  let btn = document.getElementById(type + "Btn");
-
-  if(state[type] == 1){
-    btn.className = "toggle on";
-    btn.innerText = "✔ " + type.toUpperCase() + " ON";
-  }else{
-    btn.className = "toggle off";
-    btn.innerText = "✖ " + type.toUpperCase() + " OFF";
-  }
 }
+
+// ===== ส่งคำสั่ง =====
+function cmd(c){
+  fetch("/api/control?cmd=" + c);
+}
+
+setInterval(load,2000);
 
 </script>
 
