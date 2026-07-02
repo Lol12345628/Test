@@ -2,30 +2,101 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Farm</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+}
+
+.header{
+  text-align:center;
+  padding:15px;
+  font-size:20px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  padding:10px;
+}
+
+.card{
+  background:rgba(255,255,255,0.08);
+  padding:15px;
+  border-radius:12px;
+}
+
+.value{
+  font-size:24px;
+  color:#38bdf8;
+}
+
+.ai{
+  margin:10px;
+  padding:15px;
+  background:#1e293b;
+  border-radius:12px;
+  font-size:14px;
+}
+</style>
 </head>
 
 <body>
 
-<h2>SMART FARM DASHBOARD</h2>
+<div class="header">🌱 SMART FARM AI DASHBOARD</div>
 
-<div id="t"></div>
-<div id="h"></div>
+<div class="grid">
+  <div class="card">🌡 TEMP <div class="value" id="t">0</div></div>
+  <div class="card">🌱 SOIL <div class="value" id="s">0</div></div>
+</div>
 
-<button onclick="fetch('/api/control?cmd=water1')">WATER ON</button>
-<button onclick="fetch('/api/control?cmd=water0')">WATER OFF</button>
+<div class="ai" id="aiBox">AI ANALYZING...</div>
 
 <script>
-const API = window.location.origin + "/api";
+
+let data = {};
 
 setInterval(()=>{
- fetch(API+"/sensor")
+ fetch("/data")
  .then(r=>r.json())
  .then(d=>{
-   document.getElementById("t").innerText=d.temp;
-   document.getElementById("h").innerText=d.hum;
+   data = d;
+
+   document.getElementById("t").innerText = d.temp;
+   document.getElementById("s").innerText = d.soil;
+
+   analyzeAI();
  });
 },2000);
+
+// 🤖 AI วิเคราะห์
+function analyzeAI(){
+
+  let msg = "";
+
+  if(data.soil > 2500){
+    msg += "💧 ดินแห้ง → ระบบรดน้ำทำงานอัตโนมัติ\n";
+  }
+
+  if(data.temp > 32){
+    msg += "🌡 อุณหภูมิสูง → เปิดพัดลมลดความร้อน\n";
+  }
+
+  if(data.temp < 25){
+    msg += "❄ อากาศเย็น → ปิดพัดลม\n";
+  }
+
+  if(msg==""){
+    msg = "✅ สภาพแวดล้อมปกติ ระบบทำงานปกติ";
+  }
+
+  document.getElementById("aiBox").innerText = msg;
+}
+
 </script>
 
 </body>
